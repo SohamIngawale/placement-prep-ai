@@ -809,6 +809,7 @@ function showPage(page, category, company) {
 // ── MODAL ────────────────────────────────────────────────────
 function openModal(type) {
   document.getElementById('modalOverlay').classList.remove('hidden');
+  document.getElementById('formLogin').classList.add('hidden');
   document.getElementById('formRegister').classList.add('hidden');
   document.getElementById('formInterview').classList.add('hidden');
   document.getElementById('formAddQuestion').classList.add('hidden');
