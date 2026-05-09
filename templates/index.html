@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="description" content="PlacePrep is the ultimate AI-powered placement preparation platform. Practice Aptitude, DSA, Technical, and HR rounds tailored for top companies like Google, Amazon, TCS, and more."/>
+  <meta name="keywords" content="placement preparation, interview prep, dsa practice, aptitude questions, ai mock interview, resume builder, placement ai"/>
+  <meta name="author" content="PlacePrep Team"/>
+  
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content="website"/>
+  <meta property="og:url" content="https://placeprep.ai/"/>
+  <meta property="og:title" content="PlacePrep — Crack Your Dream Company"/>
+  <meta property="og:description" content="Master your interviews with AI-driven mock tests, real company PYQs, and an intelligent resume builder."/>
+  <meta property="og:image" content="https://placeprep.ai/static/img/og-preview.png"/>
+
+  <!-- Twitter -->
+  <meta property="twitter:card" content="summary_large_image"/>
+  <meta property="twitter:title" content="PlacePrep — Crack Your Dream Company"/>
+  <meta property="twitter:description" content="Master your interviews with AI-driven mock tests, real company PYQs, and an intelligent resume builder."/>
+  
+  <title>PlacePrep — Crack Your Dream Company</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
+</head>
+<body>
+
+<!-- ── NAV ──────────────────────────────────────────────── -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#" onclick="showPage('home')">
+      <span class="logo-icon">◈</span> PlacePrep
+    </a>
+    <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </button>
+    <ul class="nav-links" id="navLinks">
+      <li><a href="#" onclick="showPage('companies')">Companies</a></li>
+      <li class="nav-dropdown">
+        <a href="#" class="dropdown-trigger">Practice ▾</a>
+        <div class="dropdown-menu">
+          <a href="#" onclick="showPage('practice','aptitude')">🧮 Aptitude</a>
+          <a href="#" onclick="showPage('practice','dsa')">⚡ DSA / Coding</a>
+          <a href="#" onclick="showPage('practice','technical')">💻 Technical</a>
+          <a href="#" onclick="showPage('practice','hr')">🤝 HR Interview</a>
+        </div>
+      </li>
+      <li class="nav-dropdown">
+        <a href="#" class="dropdown-trigger">Tools ▾</a>
+        <div class="dropdown-menu">
+          <a href="#" onclick="showPage('mock-tests')">📝 Mock Tests</a>
+          <a href="#" onclick="showPage('resume-builder')">📄 Resume Builder</a>
+          <a href="#" onclick="showPage('ai-review')">✨ AI Review</a>
+          <a href="#" onclick="showPage('ai-interviewer')">🤖 AI Interviewer</a>
+        </div>
+      </li>
+      <li><a href="#" onclick="showPage('interviews')">Experiences</a></li>
+      <li><a href="#" onclick="showPage('leaderboard')">Leaderboard</a></li>
+    </ul>
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">🌙</button>
+    <div class="nav-auth" id="navAuth">
+      <button class="btn-ghost" onclick="openModal('login')">Login</button>
+      <button class="btn-primary" onclick="openModal('register')">Get Started</button>
+    </div>
+    <div class="nav-user hidden" id="navUser">
+      <div class="user-avatar" onclick="showPage('dashboard')" id="userAvatar" title="Dashboard">U</div>
+      <button class="btn-ghost small" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ── PAGES ─────────────────────────────────────────────── -->
+<main id="app">
+
+  <!-- HOME PAGE -->
+  <div class="page active" id="page-home">
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="grid-overlay"></div>
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+      </div>
+      <div class="hero-content">
+        <div id="potdBanner" class="hidden" style="background: rgba(102, 126, 234, 0.15); border: 1px solid var(--primary); padding: 1rem 2rem; border-radius: 50px; display: inline-flex; align-items: center; gap: 1rem; margin-bottom: 2rem; cursor: pointer; transition: 0.3s;" onclick="goToPOTD()">
+          <span style="font-size: 1.5rem">🔥</span>
+          <div style="text-align: left;">
+            <div style="font-size: 0.8rem; font-weight: bold; color: var(--primary); text-transform: uppercase;">Problem of the Day</div>
+            <div id="potdTitle" style="font-weight: 600;">Loading...</div>
+          </div>
+          <span style="color: var(--primary)">→</span>
+        </div>
+        <div class="hero-badge">🎯 #1 Placement Prep Platform</div>
+        <h1 class="hero-title">Crack <em>Any</em> Company.<br>Land Your <span class="highlight">Dream Job.</span></h1>
+        <p class="hero-sub">Comprehensive preparation for Google, Amazon, Microsoft, TCS, Infosys & more — Aptitude, DSA, Technical & HR all in one place.</p>
+        <div class="hero-cta">
+          <button class="btn-primary large" onclick="openModal('register')">Start Preparing Free →</button>
+          <button class="btn-outline large" onclick="showPage('companies')">Explore Companies</button>
+        </div>
+        <div class="hero-stats" id="heroStats">
+          <div class="stat-chip"><strong id="statQ">500+</strong> Questions</div>
+          <div class="stat-chip"><strong id="statU">1K+</strong> Users</div>
+          <div class="stat-chip"><strong id="statC">8</strong> Companies</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CATEGORY CARDS -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <h2>What Will You Practice Today?</h2>
+          <p>Structured content tailored to each round of the hiring process</p>
+        </div>
+        <div class="category-grid">
+          <div class="cat-card cat-apt" onclick="showPage('practice','aptitude')">
+            <div class="cat-icon">🧮</div>
+            <h3>Aptitude & Reasoning</h3>
+            <p>Quantitative, logical reasoning, data interpretation for service companies & MNCs</p>
+            <div class="cat-meta"><span class="tag">5+ Topics</span><span class="tag easy">Easy to Hard</span></div>
+            <div class="cat-arrow">→</div>
+          </div>
+          <div class="cat-card cat-dsa" onclick="showPage('practice','dsa')">
+            <div class="cat-icon">⚡</div>
+            <h3>Coding / DSA</h3>
+            <p>Arrays, Trees, Graphs, DP — all patterns asked in FAANG & product companies</p>
+            <div class="cat-meta"><span class="tag">5+ Problems</span><span class="tag medium">All Levels</span></div>
+            <div class="cat-arrow">→</div>
+          </div>
+          <div class="cat-card cat-tech" onclick="showPage('practice','technical')">
+            <div class="cat-icon">💻</div>
+            <h3>Technical Interview</h3>
+            <p>OOP, DBMS, OS, Networks, System Design — core CS fundamentals</p>
+            <div class="cat-meta"><span class="tag">5+ Topics</span><span class="tag hard">Core CS</span></div>
+            <div class="cat-arrow">→</div>
+          </div>
+          <div class="cat-card cat-hr" onclick="showPage('practice','hr')">
+            <div class="cat-icon">🤝</div>
+            <h3>HR Interview</h3>
+            <p>Behavioral questions, STAR method, company research tips & sample answers</p>
+            <div class="cat-meta"><span class="tag">4+ Topics</span><span class="tag easy">Soft Skills</span></div>
+            <div class="cat-arrow">→</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- COMPANIES PREVIEW -->
+    <section class="section dark-section">
+      <div class="container">
+        <div class="section-header light">
+          <h2>Prep by Company</h2>
+          <p>Each company has its own pattern — learn exactly what to expect</p>
+        </div>
+        <div class="company-strip" id="homeCompanies"></div>
+        <div class="center-btn">
+          <button class="btn-outline-light" onclick="showPage('companies')">View All Companies →</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- COMPANIES PAGE -->
+  <div class="page" id="page-companies">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">Company-Wise Preparation</h1>
+        <p class="page-sub">Filter questions by company and know exactly what each company asks</p>
+      </div>
+    </div>
+    <div class="container section">
+      <h2 class="section-label">🏢 Product MNCs</h2>
+      <div class="company-grid" id="mncsGrid"></div>
+      <h2 class="section-label" style="margin-top:3rem">🚀 Startups & Unicorns</h2>
+      <div class="company-grid" id="startupsGrid"></div>
+      <h2 class="section-label" style="margin-top:3rem">💰 Finance & Consulting</h2>
+      <div class="company-grid" id="financeGrid"></div>
+      <h2 class="section-label" style="margin-top:3rem">🏭 Service / IT Companies</h2>
+      <div class="company-grid" id="serviceGrid"></div>
+    </div>
+  </div>
+
+  <!-- COMPANY DETAILS PAGE -->
+  <div class="page" id="page-company-details">
+    <div class="page-header-section" id="companyDetailsHeader">
+      <!-- Injected by JS -->
+    </div>
+    <div class="container section">
+      <h2 class="section-label">Preparation Tracks</h2>
+      <div class="grid" id="companyTracksGrid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+
+  <!-- PRACTICE PAGE -->
+  <div class="page" id="page-practice">
+    <div class="practice-layout">
+      <aside class="practice-sidebar" id="practiceSidebar">
+        <div class="sidebar-header">
+          <h3 id="sidebarTitle">Questions</h3>
+          <div class="filter-group">
+            <select id="filterDifficulty" onchange="filterQuestions()">
+              <option value="">All Difficulties</option>
+              <option value="Easy">Easy</option>
+              <option value="Medium">Medium</option>
+              <option value="Hard">Hard</option>
+            </select>
+          </div>
+        </div>
+        <div class="question-list" id="questionList"></div>
+      </aside>
+      <div class="practice-main" id="practiceMain">
+        <div class="empty-state">
+          <div class="empty-icon">👈</div>
+          <h3>Select a question to begin</h3>
+          <p>Choose from the list on the left</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- LEADERBOARD PAGE -->
+  <div class="page" id="page-leaderboard">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">Leaderboard</h1>
+        <p class="page-sub">Compete with your peers and track your rank.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <div class="leaderboard-card" style="background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; max-width: 800px; margin: 0 auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border);">
+              <th style="padding: 1rem; color: var(--text2);">Rank</th>
+              <th style="padding: 1rem; color: var(--text2);">Student</th>
+              <th style="padding: 1rem; color: var(--text2); text-align: right;">Points</th>
+            </tr>
+          </thead>
+          <tbody id="leaderboardBody">
+            <!-- Injected by JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- MOCK TESTS PAGE -->
+  <div class="page" id="page-mock-tests">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">Mock Assessments</h1>
+        <p class="page-sub">Take timed tests tailored for specific companies and categories.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <div id="mockSetupView" style="max-width: 600px; margin: 0 auto; background: var(--surface2); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <h2 style="margin-bottom: 1.5rem">Configure Your Test</h2>
+        <div class="form-group">
+          <label>Category</label>
+          <select id="mockCategory" style="width: 100%; padding: 0.8rem; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: white;">
+            <option value="aptitude">Aptitude & Reasoning</option>
+            <option value="dsa">Coding / DSA</option>
+            <option value="technical">Technical CS</option>
+            <option value="hr">HR Interview</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>Target Company (Optional)</label>
+          <select id="mockCompany" style="width: 100%; padding: 0.8rem; border-radius: 6px; background: var(--bg); border: 1px solid var(--border); color: white;">
+            <option value="">Any Company</option>
+            <!-- Injected by JS -->
+          </select>
+        </div>
+        <button class="btn-primary full" style="margin-top: 2rem;" onclick="startMockTest()">Start 30-Min Assessment →</button>
+      </div>
+
+      <div id="mockActiveView" class="hidden" style="max-width: 800px; margin: 0 auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; background: var(--surface2); padding: 1rem 2rem; border-radius: 12px; margin-bottom: 2rem; border: 1px solid var(--border);">
+          <h3 id="mockTitle" style="margin:0">Test in Progress</h3>
+          <div style="font-size: 1.5rem; font-family: monospace; font-weight: bold; color: var(--primary);" id="mockTimer">30:00</div>
+        </div>
+        <div id="mockQuestionsContainer"></div>
+        <button class="btn-primary full" style="margin-top: 2rem;" onclick="submitMockTest()">Submit Assessment</button>
+      </div>
+      
+      <div id="mockResultView" class="hidden" style="max-width: 600px; margin: 0 auto; text-align: center; background: var(--surface2); padding: 3rem 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🎯</div>
+        <h2>Test Completed</h2>
+        <p style="color: var(--text2); margin-bottom: 2rem;">Your score and detailed analysis</p>
+        <div style="font-size: 3rem; font-weight: bold; color: var(--primary); margin-bottom: 2rem;" id="mockScoreDisplay">10 / 10</div>
+        <p style="color: var(--text2); margin-bottom: 2rem;">+<span id="mockBonusPoints">0</span> Bonus Points Awarded!</p>
+        <button class="btn-ghost" onclick="resetMockTest()">Take Another Test</button>
+      </div>
+    </div>
+  </div>
+  <!-- AI REVIEW PAGE -->
+  <div class="page" id="page-ai-review">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">✨ AI Interview Assistant</h1>
+        <p class="page-sub">Get instant, actionable feedback on your Resume or Behavioral answers.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <div style="max-width: 800px; margin: 0 auto; background: var(--surface2); padding: 2rem; border-radius: 12px; border: 1px solid var(--border);">
+        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+          <button id="btnAiResume" class="btn-primary" onclick="setAiMode('resume')">📄 Resume Review</button>
+          <button id="btnAiAnswer" class="btn-ghost" onclick="setAiMode('answer')">🗣️ Answer Review</button>
+        </div>
+        <div class="form-group">
+          <label id="aiInputLabel">Paste your resume text here:</label>
+          <textarea id="aiInputText" style="width: 100%; height: 200px; background: var(--bg); color: white; border: 1px solid var(--border); border-radius: 8px; padding: 1rem; font-family: sans-serif; resize: vertical; margin-top: 0.5rem;" placeholder="E.g. I am a software engineer with experience in..."></textarea>
+          <div id="aiFileContainer" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--border);">
+            <label style="display:block; margin-bottom: 0.5rem; color: var(--text2)">Or upload your Resume file (PDF, DOCX):</label>
+            <input type="file" id="aiFileInput" accept=".pdf,.doc,.docx" style="color: var(--text2); background: var(--bg); padding: 0.5rem; border: 1px solid var(--border); border-radius: 4px; width: 100%;">
+          </div>
+        </div>
+        <button class="btn-primary full" style="margin-top: 1rem;" onclick="submitAiReview()">Analyze with AI ✨</button>
+
+        <div id="aiResultArea" class="hidden" style="margin-top: 3rem; border-top: 1px solid var(--border); padding-top: 2rem;">
+          <h3>AI Analysis Result</h3>
+          <div style="display: flex; align-items: center; gap: 2rem; margin-top: 1rem;">
+            <div style="font-size: 3rem; font-weight: bold; color: var(--primary);" id="aiScoreDisplay">0/100</div>
+            <div id="aiFeedbackDisplay" style="color: var(--text2); line-height: 1.6;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- RESUME BUILDER PAGE -->
+  <div class="page" id="page-resume-builder">
+    <div class="page-header-section">
+      <div class="container" style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <h1 class="page-title">Professional Resume Builder</h1>
+          <p class="page-sub">Build a clean, ATS-friendly resume that recruiters love.</p>
+        </div>
+        <div style="display:flex; gap:1rem">
+          <button class="btn-ghost" onclick="saveResume()">💾 Save Draft</button>
+          <button class="btn-primary" onclick="printResume()">📄 Download PDF</button>
+        </div>
+      </div>
+    </div>
+    <div class="container section">
+      <div class="resume-builder-layout">
+        <!-- FORM SIDE -->
+        <div class="resume-form-area">
+          <div class="form-section">
+            <h3>👤 Personal Information</h3>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="resName" placeholder="John Doe" oninput="updateResumePreview()">
+              </div>
+              <div class="form-group">
+                <label>Job Title</label>
+                <input type="text" id="resTitle" placeholder="Software Engineer" oninput="updateResumePreview()">
+              </div>
+            </div>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top:1rem">
+              <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="resEmail" placeholder="john@example.com" oninput="updateResumePreview()">
+              </div>
+              <div class="form-group">
+                <label>Phone</label>
+                <input type="text" id="resPhone" placeholder="+91 98765 43210" oninput="updateResumePreview()">
+              </div>
+            </div>
+            <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top:1rem">
+              <div class="form-group">
+                <label>LinkedIn / Portfolio</label>
+                <input type="text" id="resLinks" placeholder="linkedin.com/in/johndoe" oninput="updateResumePreview()">
+              </div>
+              <div class="form-group">
+                <label>Location</label>
+                <input type="text" id="resLocation" placeholder="Mumbai, India" oninput="updateResumePreview()">
+              </div>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3>📝 Professional Summary</h3>
+            <textarea id="resSummary" style="height:100px" placeholder="Motivated software engineer with experience in..." oninput="updateResumePreview()"></textarea>
+          </div>
+
+          <div class="form-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+              <h3 style="margin:0">🎓 Education</h3>
+              <button class="btn-ghost small" onclick="addResumeItem('edu')">+ Add</button>
+            </div>
+            <div id="resEduList"></div>
+          </div>
+
+          <div class="form-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+              <h3 style="margin:0">💼 Experience</h3>
+              <button class="btn-ghost small" onclick="addResumeItem('exp')">+ Add</button>
+            </div>
+            <div id="resExpList"></div>
+          </div>
+
+          <div class="form-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+              <h3 style="margin:0">🚀 Projects</h3>
+              <button class="btn-ghost small" onclick="addResumeItem('proj')">+ Add</button>
+            </div>
+            <div id="resProjList"></div>
+          </div>
+
+          <div class="form-section">
+            <h3>🛠️ Skills</h3>
+            <textarea id="resSkills" placeholder="Languages: Python, JS; Frameworks: React, Node.js" oninput="updateResumePreview()"></textarea>
+          </div>
+        </div>
+
+        <!-- PREVIEW SIDE -->
+        <div class="resume-preview-area">
+          <div class="resume-paper" id="resumePaper">
+            <!-- Rendered by JS -->
+            <div style="text-align:center; padding: 4rem; color: var(--text2);">
+              Loading Preview...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INTERVIEW EXPERIENCES PAGE -->
+  <div class="page" id="page-interviews">
+    <div class="page-header-section">
+      <div class="container" style="display:flex; justify-content:space-between; align-items:center">
+        <div>
+          <h1 class="page-title">Community Interview Experiences</h1>
+          <p class="page-sub">Read and share real interview stories from fellow students.</p>
+        </div>
+        <button class="btn-primary" onclick="openModal('interview')">Share Your Story +</button>
+      </div>
+    </div>
+    <div class="container section">
+      <div id="interviewsList" class="grid" style="grid-template-columns: 1fr; gap: 1.5rem;">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- PROFILE PAGE -->
+  <div class="page" id="page-profile">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">My Dashboard</h1>
+      </div>
+    </div>
+    <div class="container section">
+      <div class="profile-grid">
+        <div class="profile-card" id="profileCard">
+          <div class="profile-avatar" id="profileAvatar">U</div>
+          <h2 id="profileName">Username</h2>
+          <p id="profileEmail" class="muted">email@example.com</p>
+          <p id="profileJoined" class="muted small">Joined: —</p>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-num" id="statCompleted">0</div>
+            <div class="stat-label">Questions Completed</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statBookmarks">0</div>
+            <div class="stat-label">Bookmarked</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="statScore">—</div>
+            <div class="stat-label">Best Quiz Score</div>
+          </div>
+          <div class="profile-stats">
+          <div class="stat-box">
+            <span class="label">Total Points</span>
+            <span class="value" id="profilePoints">0</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Current Streak</span>
+            <span class="value" id="profileStreak">0 Days</span>
+          </div>
+          <div class="stat-box">
+            <span class="label">Max Streak</span>
+            <span class="value" id="profileMaxStreak">0 Days</span>
+          </div>
+        </div>
+
+        <h3 style="margin-top:2rem; margin-bottom:1rem">Activity Heatmap</h3>
+        <div id="activityHeatmap" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:1.5rem; overflow-x:auto;">
+           <div id="heatmapGrid" style="display:grid; grid-template-columns: repeat(53, 1fr); gap: 4px;"></div>
+           <div style="display:flex; justify-content:space-between; margin-top:10px; color:var(--text2); font-size:0.75rem">
+             <span>Less</span>
+             <div style="display:flex; gap:4px">
+               <div style="width:12px; height:12px; background:#161b22"></div>
+               <div style="width:12px; height:12px; background:#0e4429"></div>
+               <div style="width:12px; height:12px; background:#006d32"></div>
+               <div style="width:12px; height:12px; background:#26a641"></div>
+               <div style="width:12px; height:12px; background:#39d353"></div>
+             </div>
+             <span>More</span>
+           </div>
+        </div>
+
+        <h3 style="margin-top:2rem; margin-bottom:1rem">Category Progress</h3>
+        <div id="categoryProgress"></div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- PERSONALIZED DASHBOARD -->
+  <div class="page" id="page-dashboard">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">📊 Your Dashboard</h1>
+        <p class="page-sub">Personalized insights to focus your preparation.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <!-- Quick Stats Row -->
+      <div class="dash-stats-row" id="dashStatsRow">
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:rgba(124,106,247,0.15); color:var(--accent)">📝</div>
+          <div class="dash-stat-num" id="dashCompleted">0</div>
+          <div class="dash-stat-label">Questions Done</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:rgba(86,207,178,0.15); color:var(--accent2)">🔥</div>
+          <div class="dash-stat-num" id="dashStreak">0</div>
+          <div class="dash-stat-label">Day Streak</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:rgba(247,160,106,0.15); color:var(--accent3)">⭐</div>
+          <div class="dash-stat-num" id="dashPoints">0</div>
+          <div class="dash-stat-label">Total Points</div>
+        </div>
+        <div class="dash-stat-card">
+          <div class="dash-stat-icon" style="background:rgba(247,106,154,0.15); color:var(--hard)">🎯</div>
+          <div class="dash-stat-num" id="dashRank">—</div>
+          <div class="dash-stat-label">Your Rank</div>
+        </div>
+      </div>
+
+      <div class="dash-grid">
+        <!-- Today's Goals -->
+        <div class="dash-card">
+          <h3>🎯 Today's Goals</h3>
+          <div id="dashGoals">
+            <div class="dash-goal-item"><span>✅</span> Solve 1 DSA problem</div>
+            <div class="dash-goal-item"><span>⬜</span> Practice 3 aptitude questions</div>
+            <div class="dash-goal-item"><span>⬜</span> Review 1 technical concept</div>
+          </div>
+        </div>
+
+        <!-- Weak Areas -->
+        <div class="dash-card">
+          <h3>⚠️ Focus Areas</h3>
+          <div id="dashWeakAreas">
+            <p style="color:var(--text2); font-size:0.9rem">Based on your practice history:</p>
+          </div>
+        </div>
+
+        <!-- Suggested Next -->
+        <div class="dash-card" style="grid-column: 1 / -1;">
+          <h3>💡 Recommended For You</h3>
+          <div class="dash-reco-grid" id="dashRecommendations">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <!-- Category Progress -->
+        <div class="dash-card" style="grid-column: 1 / -1;">
+          <h3>📈 Your Progress</h3>
+          <div id="dashCategoryProgress"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI MOCK INTERVIEWER PAGE -->
+  <div class="page" id="page-ai-interviewer">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">🤖 AI Mock Interviewer</h1>
+        <p class="page-sub">Practice with an AI that simulates real interview conversations.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <!-- Setup View -->
+      <div id="interviewSetup" style="max-width:600px; margin:0 auto;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:2.5rem;">
+          <h2 style="margin-bottom:1.5rem; font-family:var(--font-display)">Configure Your Interview</h2>
+          <div class="form-group">
+            <label>Interview Type</label>
+            <select id="aiIntType" style="width:100%; padding:0.8rem; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:var(--text);">
+              <option value="technical">💻 Technical Interview</option>
+              <option value="hr">🤝 HR / Behavioral</option>
+              <option value="dsa">⚡ DSA Problem Solving</option>
+              <option value="system-design">🏗️ System Design</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-top:1rem">
+            <label>Target Company (Optional)</label>
+            <input type="text" id="aiIntCompany" placeholder="e.g. Google, Amazon, TCS">
+          </div>
+          <div class="form-group" style="margin-top:1rem">
+            <label>Difficulty</label>
+            <select id="aiIntDiff" style="width:100%; padding:0.8rem; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:var(--text);">
+              <option value="easy">Easy (Fresher)</option>
+              <option value="medium" selected>Medium (1-2 YOE)</option>
+              <option value="hard">Hard (Senior)</option>
+            </select>
+          </div>
+          <button class="btn-primary full" style="margin-top:2rem" onclick="startAIInterview()">Start Mock Interview →</button>
+        </div>
+      </div>
+
+      <!-- Chat View -->
+      <div id="interviewChat" class="hidden" style="max-width:800px; margin:0 auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+          <div>
+            <h3 id="aiIntTitle" style="font-family:var(--font-display)">Technical Interview</h3>
+            <p id="aiIntSubtitle" style="color:var(--text2); font-size:0.85rem">Question 1 of 5</p>
+          </div>
+          <button class="btn-ghost small" onclick="endAIInterview()">End Interview</button>
+        </div>
+        <div class="chat-container" id="chatContainer">
+          <!-- Chat messages injected by JS -->
+        </div>
+        <div class="chat-input-row">
+          <textarea id="chatInput" placeholder="Type your answer here..." rows="3"></textarea>
+          <button class="btn-primary" onclick="sendChatAnswer()" id="chatSendBtn">Send →</button>
+        </div>
+      </div>
+
+      <!-- Result View -->
+      <div id="interviewResult" class="hidden" style="max-width:600px; margin:0 auto; text-align:center;">
+        <div style="background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:3rem;">
+          <div style="font-size:4rem; margin-bottom:1rem">🎯</div>
+          <h2 style="font-family:var(--font-display); margin-bottom:0.5rem">Interview Complete!</h2>
+          <p style="color:var(--text2); margin-bottom:2rem">Here's how you did:</p>
+          <div id="interviewScorecard"></div>
+          <button class="btn-primary" style="margin-top:2rem" onclick="resetAIInterview()">Try Another Interview</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── MODAL ─────────────────────────────────────────────── -->
+<div class="modal-overlay hidden" id="modalOverlay" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+
+    <!-- Login -->
+    <div id="formLogin">
+      <div class="modal-header">
+        <span class="modal-icon">🔐</span>
+        <h2>Welcome Back</h2>
+        <p>Login to track your progress</p>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="your_username"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="••••••••"/>
+      </div>
+      <div class="form-error hidden" id="loginError"></div>
+      <button class="btn-primary full" onclick="submitLogin()">Login →</button>
+      <p class="form-switch">Don't have an account? <a href="#" onclick="openModal('register')">Register</a></p>
+    </div>
+
+    <!-- Register -->
+    <div id="formRegister" class="hidden">
+      <div class="modal-header">
+        <span class="modal-icon">🚀</span>
+        <h2>Start Your Journey</h2>
+        <p>Create a free account to track progress</p>
+      </div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="regUsername" placeholder="your_username"/>
+      </div>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="you@example.com"/>
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="regPassword" placeholder="min. 6 characters"/>
+      </div>
+      <div class="form-error hidden" id="regError"></div>
+      <button class="btn-primary full" onclick="submitRegister()">Create Account →</button>
+      <p class="form-switch">Already have an account? <a href="#" onclick="openModal('login')">Login</a></p>
+    </div>
+
+    <!-- Share Interview -->
+    <div id="formInterview" class="hidden">
+      <div class="modal-header">
+        <span class="modal-icon">🤝</span>
+        <h2>Share Experience</h2>
+        <p>Help others by sharing your interview journey</p>
+      </div>
+      <div class="form-group">
+        <label>Company</label>
+        <input type="text" id="intCompany" placeholder="e.g. Google, TCS"/>
+      </div>
+      <div class="form-group">
+        <label>Role</label>
+        <input type="text" id="intRole" placeholder="e.g. SDE-1, System Engineer"/>
+      </div>
+      <div class="form-group">
+        <label>Difficulty</label>
+        <select id="intDiff">
+          <option value="Easy">Easy</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Your Experience</label>
+        <textarea id="intContent" placeholder="Describe the rounds, questions asked, etc." style="height:150px"></textarea>
+      </div>
+      <button class="btn-primary full" onclick="submitInterview()">Post Story →</button>
+    </div>
+
+    <!-- Add Previous Year Question -->
+    <div id="formAddQuestion" class="hidden">
+      <div class="modal-header">
+        <span class="modal-icon">✍️</span>
+        <h2>Add Previous Question</h2>
+        <p>Contribute a real question asked in a placement drive</p>
+      </div>
+      <div class="form-group">
+        <label>Company</label>
+        <input type="text" id="addQCompany" placeholder="e.g. Google, Amazon, TCS"/>
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="addQCategory">
+          <option value="aptitude">🧮 Aptitude</option>
+          <option value="dsa">⚡ DSA / Coding</option>
+          <option value="technical">💻 Technical Interview</option>
+          <option value="hr">🤝 HR / Behavioral</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Difficulty</label>
+        <select id="addQDiff">
+          <option value="Easy">Easy</option>
+          <option value="Medium" selected>Medium</option>
+          <option value="Hard">Hard</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>The Question</label>
+        <textarea id="addQContent" placeholder="Describe the specific question asked..." style="height:100px"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Solution / Explanation (Optional)</label>
+        <textarea id="addQSolution" placeholder="How to solve this?" style="height:100px"></textarea>
+      </div>
+      <button class="btn-primary full" onclick="submitAddQuestion()">Add to Platform →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST ─────────────────────────────────────────────── -->
+<div class="toast hidden" id="toast"></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+<script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
+</html>
