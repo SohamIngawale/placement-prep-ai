@@ -31,9 +31,7 @@
     <a class="nav-logo" href="#" onclick="showPage('home')">
       <span class="logo-icon">◈</span> PlacePrep
     </a>
-    <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()">
-      <span></span><span></span><span></span>
-    </button>
+    
     <ul class="nav-links" id="navLinks">
       <li><a href="#" onclick="showPage('companies')">Companies</a></li>
       <li class="nav-dropdown">
@@ -57,15 +55,22 @@
       <li><a href="#" onclick="showPage('interviews')">Experiences</a></li>
       <li><a href="#" onclick="showPage('leaderboard')">Leaderboard</a></li>
     </ul>
-    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">🌙</button>
+
     <div class="nav-auth" id="navAuth">
       <button class="btn-ghost" onclick="openModal('login')">Login</button>
-      <button class="btn-primary" onclick="openModal('register')">Get Started</button>
+      <button class="btn-primary compact-mobile" onclick="openModal('register')">Get Started</button>
     </div>
+    
     <div class="nav-user hidden" id="navUser">
       <div class="user-avatar" onclick="showPage('dashboard')" id="userAvatar" title="Dashboard">U</div>
       <button class="btn-ghost small" onclick="logout()">Logout</button>
     </div>
+
+    <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Light/Dark Mode">🌙</button>
+
+    <button class="nav-hamburger" id="navHamburger" onclick="toggleMobileNav()">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
 
