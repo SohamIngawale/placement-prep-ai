@@ -52,6 +52,7 @@
           <a href="#" onclick="showPage('ai-interviewer')">🤖 AI Interviewer</a>
         </div>
       </li>
+      <li><a href="#" onclick="showPage('roadmaps')">Roadmaps</a></li>
       <li><a href="#" onclick="showPage('interviews')">Experiences</a></li>
       <li><a href="#" onclick="showPage('leaderboard')">Leaderboard</a></li>
     </ul>
@@ -97,7 +98,7 @@
         <div class="hero-badge">🎯 #1 Placement Prep Platform</div>
         <h1 class="hero-title">Crack <em>Any</em> Company.<br>Land Your <span class="highlight">Dream Job.</span></h1>
         <p class="hero-sub">Comprehensive preparation for Google, Amazon, Microsoft, TCS, Infosys & more — Aptitude, DSA, Technical & HR all in one place.</p>
-        <div class="hero-cta">
+        <div class="hero-cta" id="heroCta">
           <button class="btn-primary large" onclick="openModal('register')">Start Preparing Free →</button>
           <button class="btn-outline large" onclick="showPage('companies')">Explore Companies</button>
         </div>
@@ -582,6 +583,79 @@
         <div class="dash-card" style="grid-column: 1 / -1;">
           <h3>📈 Your Progress</h3>
           <div id="dashCategoryProgress"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ROADMAPS PAGE -->
+  <div class="page" id="page-roadmaps">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">Placement Roadmaps</h1>
+        <p class="page-sub">Structured paths to crack your dream companies or use AI to generate one.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <div class="roadmap-layout">
+        <!-- AI Generator Sidebar -->
+        <div class="roadmap-sidebar">
+          <div class="roadmap-card ai-gen-card">
+            <h3 style="font-family:var(--font-display); margin-bottom:0.5rem">🤖 AI Roadmap Generator</h3>
+            <p style="font-size: 0.85rem; color: var(--text2); margin-bottom: 1.5rem;">Generate a personalized study plan based on your target company and skills.</p>
+            <div class="form-group">
+              <label>Target Company</label>
+              <input type="text" id="roadmapCompany" placeholder="e.g. Google, Amazon, TCS">
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <input type="text" id="roadmapRole" placeholder="e.g. Software Engineer, SDE-1">
+            </div>
+            <div class="form-group" style="margin-top:1rem">
+              <label>Current Skills</label>
+              <textarea id="roadmapSkills" placeholder="e.g. Java basics, HTML/CSS, basic SQL" style="height: 80px; width:100%; padding:0.8rem; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:white;"></textarea>
+            </div>
+            <div class="form-group" style="margin-top:1rem">
+              <label>Duration (Days)</label>
+              <select id="roadmapDuration" style="width:100%; padding:0.8rem; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:white;">
+                <option value="30">30 Days (Intensive)</option>
+                <option value="60">60 Days (Steady)</option>
+                <option value="90">90 Days (Complete)</option>
+              </select>
+            </div>
+            <button class="btn-primary full" style="margin-top:1.5rem" onclick="generateAIRoadmap()" id="btnGenRoadmap">Generate AI Roadmap ✨</button>
+          </div>
+        </div>
+
+        <!-- Roadmap Content -->
+        <div class="roadmap-main">
+          <div id="roadmapPlaceholder">
+            <h2 class="section-label" style="margin-bottom:1.5rem">Popular Roadmaps</h2>
+            <div class="grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem;">
+              <div class="roadmap-item-card" onclick="loadStaticRoadmap('google')">
+                <div class="roadmap-icon" style="background:#4285F4">G</div>
+                <h4>Google SDE Roadmap</h4>
+                <p style="color:var(--text2); font-size:0.9rem">Advanced DSA, System Design, and Googliness.</p>
+                <span class="tag hard" style="width:fit-content">Hard</span>
+              </div>
+              <div class="roadmap-item-card" onclick="loadStaticRoadmap('amazon')">
+                <div class="roadmap-icon" style="background:#FF9900">A</div>
+                <h4>Amazon SDE-1 Roadmap</h4>
+                <p style="color:var(--text2); font-size:0.9rem">DSA Mastery and Leadership Principles.</p>
+                <span class="tag medium" style="width:fit-content">Medium-Hard</span>
+              </div>
+              <div class="roadmap-item-card" onclick="loadStaticRoadmap('tcs')">
+                <div class="roadmap-icon" style="background:#EE3A43">T</div>
+                <h4>TCS Digital/Ninja Roadmap</h4>
+                <p style="color:var(--text2); font-size:0.9rem">Aptitude, Core CS, and Basic Coding.</p>
+                <span class="tag easy" style="width:fit-content">Easy-Medium</span>
+              </div>
+            </div>
+          </div>
+          
+          <div id="roadmapDisplay" class="hidden">
+            <!-- Injected by JS -->
+          </div>
         </div>
       </div>
     </div>

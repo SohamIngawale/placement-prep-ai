@@ -45,6 +45,15 @@ function updateNavForUser(user) {
   document.getElementById('navUser').classList.remove('hidden');
   const av = document.getElementById('userAvatar');
   av.textContent = (user.username || 'U')[0].toUpperCase();
+  
+  // Update Hero CTA
+  const heroCta = document.getElementById('heroCta');
+  if (heroCta) {
+    heroCta.innerHTML = `
+      <button class="btn-primary large" onclick="showPage('dashboard')">Go to My Dashboard 📊</button>
+      <button class="btn-outline large" onclick="showPage('roadmaps')">View Roadmaps</button>
+    `;
+  }
 }
 
 async function submitLogin() {
@@ -1569,6 +1578,13 @@ async function loadDashboard() {
     const pct = Math.round((done / total) * 100);
     return `<div class="prog-row"><div class="prog-label">${cat.label}</div><div class="prog-bar-wrap"><div class="prog-bar" style="width:${pct}%"></div></div><div class="prog-count">${done}/${total}</div></div>`;
   }).join('');
+
+  // Add Heatmap to Dashboard too
+  try {
+    const res = await fetch('/api/activity');
+    const data = await res.json();
+    renderHeatmap(data.activity || {});
+  } catch(e) {}
 }
 
 // ── AI MOCK INTERVIEWER ───────────────────────────────────────

@@ -57,7 +57,7 @@ class User(db.Model):
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     activity_date = db.Column(db.Date, default=date.today)
     count = db.Column(db.Integer, default=0)
 
@@ -189,7 +189,7 @@ def complete():
     p.completed = True
     db.session.add(p)
     
-    # Award points
+    # Award points & update activity
     if is_new:
         user = User.query.filter_by(username=session['user']).first()
         if user:
@@ -197,6 +197,28 @@ def complete():
             q_diff = next((q.get('difficulty', 'Easy') for q in ALL_QUESTIONS if q['id'] == qid), 'Easy')
             points = 30 if q_diff == 'Hard' else (20 if 'Medium' in q_diff else 10)
             user.points = (user.points or 0) + points
+            
+            # Update Activity & Streak
+            today = date.today()
+            activity = Activity.query.filter_by(user_id=user.id, activity_date=today).first()
+            if not activity:
+                activity = Activity(user_id=user.id, activity_date=today, count=1)
+                
+                # Update Streak
+                if user.last_activity_date:
+                    if user.last_activity_date == today - timedelta(days=1):
+                        user.current_streak += 1
+                    elif user.last_activity_date < today - timedelta(days=1):
+                        user.current_streak = 1
+                else:
+                    user.current_streak = 1
+                
+                user.max_streak = max(user.max_streak or 0, user.current_streak)
+                user.last_activity_date = today
+                db.session.add(activity)
+            else:
+                activity.count += 1
+            
             db.session.add(user)
             
     db.session.commit()
@@ -451,6 +473,57 @@ def ai_chat():
         )
         return jsonify({"reply": response.content[0].text})
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/generate-roadmap', methods=['POST'])
+def generate_roadmap():
+    if not anthropic_client:
+        return jsonify({"error": "Anthropic API key is not configured"}), 500
+    
+    data = request.json
+    company = data.get('company', 'Any Company')
+    role = data.get('role', 'Software Engineer')
+    skills = data.get('skills', 'Basics of Programming')
+    duration = data.get('duration', '30') # days
+    
+    prompt = f"""
+    Create a detailed {duration}-day placement preparation roadmap for a {role} position at {company}.
+    The user's current skills: {skills}.
+    
+    Format the response as a JSON object with the following structure:
+    {{
+        "title": "Roadmap Title",
+        "description": "Short overview",
+        "phases": [
+            {{
+                "name": "Phase 1: Title",
+                "days": "Day 1-10",
+                "tasks": ["Task 1", "Task 2"],
+                "resources": ["Topic 1", "Topic 2"]
+            }}
+        ],
+        "tips": ["Tip 1", "Tip 2"]
+    }}
+    Return ONLY the JSON object.
+    """
+    
+    try:
+        response = anthropic_client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=2000,
+            temperature=0.7,
+            system="You are a senior placement coordinator and career coach. You provide highly structured, realistic, and effective study plans in JSON format.",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        # Parse JSON from response
+        content = response.content[0].text
+        # Find JSON block if Claude adds text
+        if "{" in content:
+            content = content[content.find("{"):content.rfind("}")+1]
+        
+        return jsonify(json.loads(content))
+    except Exception as e:
+        print(f"Error generating roadmap: {e}")
         return jsonify({"error": str(e)}), 500
 
 # ───── ADMIN ─────
