@@ -812,6 +812,8 @@ function showPage(page, category, company) {
 
   if (page === 'ai-interviewer') initAIInterviewer();
   
+  if (page === 'roadmaps') resetRoadmap();
+  
   window.scrollTo(0, 0);
 }
 
@@ -1776,3 +1778,126 @@ function resetAIInterview() {
   aiIntState = { type: '', difficulty: '', company: '', questions: [], currentQ: 0, answers: [], scores: [] };
   initAIInterviewer();
 }
+
+// ── ROADMAPS ──────────────────────────────────────────────────
+async function generateAIRoadmap() {
+  const company = document.getElementById('roadmapCompany').value.trim();
+  const role = document.getElementById('roadmapRole').value.trim();
+  const skills = document.getElementById('roadmapSkills').value.trim();
+  const duration = document.getElementById('roadmapDuration').value;
+
+  if (!company || !role) {
+    showToast('Please specify target company and role.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnGenRoadmap');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Generating with AI... ✨';
+
+  try {
+    const res = await fetch('/api/generate-roadmap', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ company, role, skills, duration })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error);
+
+    renderRoadmap(data);
+  } catch (err) {
+    showToast('Failed to generate roadmap. Using fallback...', 'error');
+    loadStaticRoadmap(company.toLowerCase().includes('google') ? 'google' : (company.toLowerCase().includes('amazon') ? 'amazon' : 'tcs'));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
+  }
+}
+
+function loadStaticRoadmap(type) {
+  const roadmaps = {
+    google: {
+      title: "Google SDE Roadmap",
+      description: "A high-intensity path focused on advanced algorithms and system design.",
+      phases: [
+        { name: "Phase 1: DSA Foundations", days: "Day 1-15", tasks: ["Arrays & Strings (Sliding Window)", "Linked Lists & Stacks", "Trees & Graphs (BFS/DFS)"], resources: ["LeetCode Top 100", "Striver's SDE Sheet"] },
+        { name: "Phase 2: Advanced Topics", days: "Day 16-30", tasks: ["Dynamic Programming (1D/2D)", "Graphs (Shortest Path, MST)", "Tries & Segment Trees"], resources: ["Google Recurring Patterns", "CP Algorithms"] },
+        { name: "Phase 3: System Design & Core CS", days: "Day 31-45", tasks: ["Load Balancers, Caching, DB Sharding", "OS Fundamentals (Semaphores, Memory)", "LPU (Low Level Design)"], resources: ["Grokking the System Design", "Design Gurus"] }
+      ],
+      tips: ["Focus on time complexity optimization", "Practice clear communication during coding", "Understand the 'Googliness' principles"]
+    },
+    amazon: {
+      title: "Amazon SDE-1 Roadmap",
+      description: "Focused on core DSA and the famous Leadership Principles.",
+      phases: [
+        { name: "Phase 1: Core Problem Solving", days: "Day 1-20", tasks: ["Sorting & Searching", "Heaps & Priority Queues", "Binary Trees (Traversal, View)"], resources: ["Amazon Tagged LeetCode", "GFG Must Do"] },
+        { name: "Phase 2: Leadership Principles", days: "Day 21-30", tasks: ["Study 16 LPs", "Prepare STAR stories for each LP", "Mock Behavioral Interviews"], resources: ["Amazon LP Official Guide", "Dan Croitor's YouTube"] },
+        { name: "Phase 3: Scale & Design", days: "Day 31-40", tasks: ["Basic System Design Concepts", "Database Normalization", "Concurrency & Multi-threading"], resources: ["High Scalability Blog", "System Design Interview by Alex Xu"] }
+      ],
+      tips: ["LPs are as important as coding", "Know your projects inside out", "Focus on code quality and edge cases"]
+    },
+    tcs: {
+      title: "TCS Digital/Ninja Roadmap",
+      description: "A balanced path covering Aptitude, Core CS, and Basic Coding.",
+      phases: [
+        { name: "Phase 1: Aptitude & Reasoning", days: "Day 1-10", tasks: ["Quantitative Aptitude (P&L, Time/Work)", "Logical Reasoning", "Verbal Ability"], resources: ["IndiaBix", "R.S. Aggarwal"] },
+        { name: "Phase 2: Technical Foundations", days: "Day 11-20", tasks: ["DBMS (SQL Queries, Joins)", "Operating Systems (Scheduling)", "Networking Basics"], resources: ["Knowledge Gate", "GFG Technical Notes"] },
+        { name: "Phase 3: Programming", days: "Day 21-30", tasks: ["String Manipulation", "Array operations", "Basic Data Structures"], resources: ["TCS NQT Previous Papers", "Hackerrank Basic"] }
+      ],
+      tips: ["Speed in Aptitude is key", "Practice basic SQL queries", "Stay confident in HR rounds"]
+    }
+  };
+
+  const data = roadmaps[type] || roadmaps['tcs'];
+  renderRoadmap(data);
+}
+
+function renderRoadmap(data) {
+  const placeholder = document.getElementById('roadmapPlaceholder');
+  const display = document.getElementById('roadmapDisplay');
+  
+  placeholder.classList.add('hidden');
+  display.classList.remove('hidden');
+
+  display.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem">
+      <div>
+        <h2 style="font-family:var(--font-display); font-size:2rem; margin-bottom:0.5rem">${data.title}</h2>
+        <p style="color:var(--text2)">${data.description}</p>
+      </div>
+      <button class="btn-ghost" onclick="resetRoadmap()">← Back to All</button>
+    </div>
+
+    <div class="roadmap-content">
+      ${data.phases.map((p, i) => `
+        <div class="roadmap-phase">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+            <h3>${p.name}</h3>
+            <span class="tag" style="background:var(--bg3)">${p.days}</span>
+          </div>
+          <ul class="roadmap-tasks">
+            ${p.tasks.map(t => `<li>${t}</li>`).join('')}
+          </ul>
+          <div style="margin-top:1rem; padding:1rem; background:rgba(124,106,247,0.05); border-radius:8px; border:1px dashed var(--border)">
+            <strong style="font-size:0.8rem; color:var(--accent); text-transform:uppercase">Recommended Resources:</strong>
+            <p style="font-size:0.85rem; color:var(--text2); margin-top:0.3rem">${p.resources.join(', ')}</p>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div style="margin-top:3rem; padding:2rem; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius)">
+      <h3 style="margin-bottom:1rem">💡 Expert Tips</h3>
+      <ul style="list-style:disc; padding-left:1.5rem; color:var(--text2)">
+        ${data.tips.map(tip => `<li style="margin-bottom:0.5rem">${tip}</li>`).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function resetRoadmap() {
+  document.getElementById('roadmapPlaceholder').classList.remove('hidden');
+  document.getElementById('roadmapDisplay').classList.add('hidden');
+}
+
