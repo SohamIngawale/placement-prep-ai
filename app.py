@@ -54,6 +54,8 @@ class User(db.Model):
     current_streak = db.Column(db.Integer, default=0)
     max_streak = db.Column(db.Integer, default=0)
     last_activity_date = db.Column(db.Date)
+    otp = db.Column(db.String(6))
+    otp_expiry = db.Column(db.DateTime)
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -88,11 +90,15 @@ with app.app_context():
     try:
         from sqlalchemy import text
         # Ignore errors if columns already exist
-        cols = ["points", "current_streak", "max_streak", "last_activity_date"]
+        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry"]
         for col in cols:
             try:
                 if col == "last_activity_date":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATE"))
+                elif col == "otp_expiry":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
+                elif col == "otp":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} VARCHAR(6)"))
                 else:
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} INTEGER DEFAULT 0"))
                 db.session.commit()
@@ -149,6 +155,49 @@ def login():
 def logout():
     session.clear()
     return jsonify({"message": "Logged out"})
+
+@app.route('/api/forgot-password', methods=['POST'])
+def forgot_password():
+    data = request.json
+    email = data.get('email')
+    user = User.query.filter_by(email=email).first()
+    
+    if not user:
+        # For security, don't reveal if user exists, but here we'll be helpful
+        return jsonify({"error": "No account found with this email"}), 404
+    
+    # Generate 6-digit OTP
+    otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    user.otp = otp
+    user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    db.session.commit()
+    
+    # SIMULATION: In a real app, send email. Here, we just return it or log it.
+    print(f"DEBUG: Password reset OTP for {user.username} ({user.email}): {otp}")
+    return jsonify({"message": "OTP sent to your email (Simulated)", "username": user.username})
+
+@app.route('/api/reset-password', methods=['POST'])
+def reset_password():
+    data = request.json
+    username = data.get('username')
+    otp = data.get('otp')
+    new_password = data.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if not user or user.otp != otp:
+        return jsonify({"error": "Invalid OTP"}), 400
+    
+    if user.otp_expiry < datetime.utcnow():
+        return jsonify({"error": "OTP expired"}), 400
+    
+    # Reset password
+    hashed = hashlib.sha256(new_password.encode()).hexdigest()
+    user.password_hash = hashed
+    user.otp = None
+    user.otp_expiry = None
+    db.session.commit()
+    
+    return jsonify({"message": "Password updated successfully"})
 
 @app.route('/api/me')
 def me():

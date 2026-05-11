@@ -840,6 +840,9 @@
       </div>
       <div class="form-error hidden" id="loginError"></div>
       <button class="btn-primary full" onclick="submitLogin()">Login →</button>
+      <div style="text-align: right; margin-top: 0.5rem;">
+        <a href="#" onclick="openModal('forgot-password')" style="font-size: 0.85rem; color: var(--primary);">Forgot Password?</a>
+      </div>
       <p class="form-switch">Don't have an account? <a href="#" onclick="openModal('register')">Register</a></p>
     </div>
 
@@ -865,6 +868,41 @@
       <div class="form-error hidden" id="regError"></div>
       <button class="btn-primary full" onclick="submitRegister()">Create Account →</button>
       <p class="form-switch">Already have an account? <a href="#" onclick="openModal('login')">Login</a></p>
+    </div>
+
+    <!-- Forgot Password Request -->
+    <div id="formForgotPassword" class="hidden">
+      <div class="modal-header">
+        <span class="modal-icon">🔑</span>
+        <h2>Forgot Password</h2>
+        <p>Enter your email to receive a reset OTP</p>
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="forgotEmail" placeholder="you@example.com"/>
+      </div>
+      <div class="form-error hidden" id="forgotError"></div>
+      <button class="btn-primary full" onclick="submitForgotPassword()">Send OTP →</button>
+      <p class="form-switch">Remembered? <a href="#" onclick="openModal('login')">Back to Login</a></p>
+    </div>
+
+    <!-- Reset Password Final -->
+    <div id="formResetPassword" class="hidden">
+      <div class="modal-header">
+        <span class="modal-icon">🛡️</span>
+        <h2>Reset Password</h2>
+        <p>Enter the OTP and your new password</p>
+      </div>
+      <div class="form-group">
+        <label>OTP (6 Digits)</label>
+        <input type="text" id="resetOtp" placeholder="123456" maxlength="6"/>
+      </div>
+      <div class="form-group">
+        <label>New Password</label>
+        <input type="password" id="resetPassword" placeholder="min. 6 characters"/>
+      </div>
+      <div class="form-error hidden" id="resetError"></div>
+      <button class="btn-primary full" onclick="submitResetPassword()">Update Password →</button>
     </div>
 
     <!-- Share Interview -->

@@ -820,19 +820,65 @@ function showPage(page, category, company) {
 // ── MODAL ────────────────────────────────────────────────────
 function openModal(type) {
   document.getElementById('modalOverlay').classList.remove('hidden');
-  document.getElementById('formLogin').classList.add('hidden');
-  document.getElementById('formRegister').classList.add('hidden');
-  document.getElementById('formInterview').classList.add('hidden');
-  document.getElementById('formAddQuestion').classList.add('hidden');
+  // Hide all forms
+  ['formLogin', 'formRegister', 'formInterview', 'formAddQuestion', 'formForgotPassword', 'formResetPassword'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
   
-  const formId = `form${type.charAt(0).toUpperCase() + type.slice(1)}`;
+  // Convert kebab-case to camelCase for ID (e.g., forgot-password -> ForgotPassword)
+  const camelType = type.split('-').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('');
+  const formId = `form${camelType}`;
   const formEl = document.getElementById(formId);
   if (formEl) formEl.classList.remove('hidden');
+  
   // Clear errors
-  ['loginError','regError'].forEach(id => {
+  ['loginError','regError', 'forgotError', 'resetError'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.classList.add('hidden'); el.textContent = ''; }
   });
+}
+
+async function submitForgotPassword() {
+  const email = document.getElementById('forgotEmail').value.trim();
+  if (!email) { showFormError('forgotError', 'Please enter your email'); return; }
+  
+  try {
+    const res = await fetch('/api/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) { showFormError('forgotError', data.error); return; }
+    
+    showToast(data.message, 'success');
+    // Store username for the reset step
+    state.tempResetUsername = data.username;
+    // Switch to reset form
+    openModal('reset-password');
+  } catch (e) { showFormError('forgotError', 'Connection error'); }
+}
+
+async function submitResetPassword() {
+  const otp = document.getElementById('resetOtp').value.trim();
+  const password = document.getElementById('resetPassword').value;
+  const username = state.tempResetUsername;
+  
+  if (!otp || !password) { showFormError('resetError', 'Please fill in all fields'); return; }
+  
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, otp, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showFormError('resetError', data.error); return; }
+    
+    showToast('Password updated! You can now login.', 'success');
+    openModal('login');
+  } catch (e) { showFormError('resetError', 'Connection error'); }
 }
 
 async function runCode() {
