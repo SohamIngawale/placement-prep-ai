@@ -1316,13 +1316,13 @@ function renderResumeFormList(type) {
       return `
         <div class="resume-item-edit">
           <span class="remove-btn" onclick="removeResumeItem('edu', ${item.id})">Remove</span>
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group"><input type="text" placeholder="Institution (e.g. IIT Bombay)" oninput="updateItemData('edu', ${item.id}, 'inst', this.value)" value="${item.inst || ''}"></div>
-            <div class="form-group"><input type="text" placeholder="Degree (e.g. B.Tech CS)" oninput="updateItemData('edu', ${item.id}, 'deg', this.value)" value="${item.deg || ''}"></div>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="form-group"><label>Institution</label><input type="text" placeholder="e.g. IIT Bombay" oninput="updateItemData('edu', ${item.id}, 'inst', this.value)" value="${item.inst || ''}"></div>
+            <div class="form-group"><label>Degree</label><input type="text" placeholder="e.g. B.Tech CS" oninput="updateItemData('edu', ${item.id}, 'deg', this.value)" value="${item.deg || ''}"></div>
           </div>
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem; margin-top:0.75rem">
-            <div class="form-group"><input type="text" placeholder="Graduation Year" oninput="updateItemData('edu', ${item.id}, 'year', this.value)" value="${item.year || ''}"></div>
-            <div class="form-group"><input type="text" placeholder="Score (CGPA/%)" oninput="updateItemData('edu', ${item.id}, 'score', this.value)" value="${item.score || ''}"></div>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.25rem; margin-top:0.5rem">
+            <div class="form-group"><label>Graduation Year</label><input type="text" placeholder="e.g. 2024" oninput="updateItemData('edu', ${item.id}, 'year', this.value)" value="${item.year || ''}"></div>
+            <div class="form-group"><label>Score (CGPA/%)</label><input type="text" placeholder="e.g. 9.2 or 85%" oninput="updateItemData('edu', ${item.id}, 'score', this.value)" value="${item.score || ''}"></div>
           </div>
         </div>
       `;
@@ -1330,21 +1330,36 @@ function renderResumeFormList(type) {
       return `
         <div class="resume-item-edit">
           <span class="remove-btn" onclick="removeResumeItem('exp', ${item.id})">Remove</span>
-          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1rem;">
-            <div class="form-group"><input type="text" placeholder="Company Name" oninput="updateItemData('exp', ${item.id}, 'comp', this.value)" value="${item.comp || ''}"></div>
-            <div class="form-group"><input type="text" placeholder="Job Title" oninput="updateItemData('exp', ${item.id}, 'role', this.value)" value="${item.role || ''}"></div>
+          <div class="grid" style="grid-template-columns: 1fr 1fr; gap: 1.25rem;">
+            <div class="form-group"><label>Company Name</label><input type="text" placeholder="e.g. Google" oninput="updateItemData('exp', ${item.id}, 'comp', this.value)" value="${item.comp || ''}"></div>
+            <div class="form-group"><label>Job Title</label><input type="text" placeholder="e.g. Software Engineer" oninput="updateItemData('exp', ${item.id}, 'role', this.value)" value="${item.role || ''}"></div>
           </div>
-          <input type="text" placeholder="Duration (e.g. Jan 2023 - Present)" style="margin-top:0.75rem; width:100%" oninput="updateItemData('exp', ${item.id}, 'dur', this.value)" value="${item.dur || ''}">
-          <textarea placeholder="Describe your achievements and responsibilities..." style="margin-top:0.75rem; height:100px; width:100%;" oninput="updateItemData('exp', ${item.id}, 'desc', this.value)">${item.desc || ''}</textarea>
+          <div class="form-group" style="margin-top:0.5rem">
+            <label>Duration</label>
+            <input type="text" placeholder="e.g. Jan 2023 - Present" oninput="updateItemData('exp', ${item.id}, 'dur', this.value)" value="${item.dur || ''}">
+          </div>
+          <div class="form-group" style="margin-top:0.5rem">
+            <label>Description</label>
+            <textarea placeholder="Describe your achievements and responsibilities..." style="height:120px" oninput="updateItemData('exp', ${item.id}, 'desc', this.value)">${item.desc || ''}</textarea>
+          </div>
         </div>
       `;
     } else {
       return `
         <div class="resume-item-edit">
           <span class="remove-btn" onclick="removeResumeItem('proj', ${item.id})">Remove</span>
-          <input type="text" placeholder="Project Name" style="width:100%" oninput="updateItemData('proj', ${item.id}, 'name', this.value)" value="${item.name || ''}">
-          <input type="text" placeholder="Tech Stack (e.g. React, Node.js)" style="margin-top:0.75rem; width:100%" oninput="updateItemData('proj', ${item.id}, 'tech', this.value)" value="${item.tech || ''}">
-          <textarea placeholder="Project description and key results..." style="margin-top:0.75rem; height:80px; width:100%;" oninput="updateItemData('proj', ${item.id}, 'desc', this.value)">${item.desc || ''}</textarea>
+          <div class="form-group">
+            <label>Project Name</label>
+            <input type="text" placeholder="e.g. E-commerce Platform" oninput="updateItemData('proj', ${item.id}, 'name', this.value)" value="${item.name || ''}">
+          </div>
+          <div class="form-group" style="margin-top:0.5rem">
+            <label>Tech Stack</label>
+            <input type="text" placeholder="e.g. React, Node.js, MongoDB" oninput="updateItemData('proj', ${item.id}, 'tech', this.value)" value="${item.tech || ''}">
+          </div>
+          <div class="form-group" style="margin-top:0.5rem">
+            <label>Project Description</label>
+            <textarea placeholder="Key results and features..." style="height:100px" oninput="updateItemData('proj', ${item.id}, 'desc', this.value)">${item.desc || ''}</textarea>
+          </div>
         </div>
       `;
     }
