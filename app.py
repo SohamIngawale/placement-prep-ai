@@ -429,14 +429,17 @@ def mock_test():
 def run_code():
     code = request.json.get('code')
     lang = request.json.get('language', 'python')
-    piston_url = "https://emacs.piston.rs/api/v2/execute"
+    piston_url = "https://emkc.org/api/v2/piston/execute"
+    piston_key = os.environ.get('PISTON_API_KEY')
+    headers = {"Authorization": piston_key} if piston_key else {}
+    
     payload = {
         "language": lang,
         "version": "3.10.0" if lang == 'python' else "*",
         "files": [{"name": "main", "content": code}]
     }
     try:
-        response = requests.post(piston_url, json=payload, timeout=10)
+        response = requests.post(piston_url, json=payload, headers=headers, timeout=10)
         return jsonify(response.json())
     except Exception as e:
         return jsonify({"error": str(e)}), 500

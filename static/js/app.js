@@ -589,11 +589,14 @@ function renderDSA(q) {
 
     <!-- Solution Modal-like overlay -->
     <div class="code-block hidden" id="solBlock">
-      <div style="display:flex; justify-content:space-between; margin-bottom:1rem">
+      <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
         <strong>Optimal Solution</strong>
-        <button onclick="toggleSolution()" style="background:none; border:none; color:var(--accent); cursor:pointer">Close</button>
+        <div style="display:flex; gap:0.5rem">
+          <button class="btn-ghost small" onclick="copySolutionText()" id="copySolBtn">Copy</button>
+          <button class="btn-ghost small" onclick="toggleSolution()" style="color:var(--accent)">Close</button>
+        </div>
       </div>
-      <pre><code>${escapeHtml(q.solution)}</code></pre>
+      <pre><code id="solCodeText">${escapeHtml(q.solution)}</code></pre>
     </div>
   `;
 }
@@ -626,7 +629,40 @@ function toggleSolution(id) {
   if (!isHidden) { autoMarkComplete(); showToast('Solution revealed', 'success'); }
 }
 
-function renderTechnical(q) {
+function copySolutionText() {
+  const code = document.getElementById('solCodeText').innerText;
+  copyToClipboard(code, 'copySolBtn');
+}
+
+function copyToClipboard(text, btnId) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById(btnId);
+    const originalText = btn.textContent;
+    btn.textContent = 'Copied! ✅';
+    showToast('Copied to clipboard!', 'success');
+    setTimeout(() => {
+      btn.textContent = originalText;
+    }, 2000);
+  }).catch(err => {
+    showToast('Failed to copy', 'error');
+  });
+}
+
+function toggleTechAns() {
+  const el = document.getElementById('techAns');
+  const copyBtn = document.getElementById('copyTechBtn');
+  const hidden = el.classList.toggle('hidden');
+  if (copyBtn) copyBtn.classList.toggle('hidden', hidden);
+  if (!hidden) autoMarkComplete();
+}
+
+function toggleHRAns() {
+  const el = document.getElementById('hrAns');
+  const copyBtn = document.getElementById('copyHRBtn');
+  const hidden = el.classList.toggle('hidden');
+  if (copyBtn) copyBtn.classList.toggle('hidden', hidden);
+  if (!hidden) autoMarkComplete();
+}
   const tags = (q.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
   return `
     <div class="q-body">${q.question}</div>
@@ -637,20 +673,15 @@ function renderTechnical(q) {
       <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text2)">Draft your answer:</label>
       <textarea placeholder="Type your answer here to practice..." style="width:100%;min-height:120px;background:var(--bg);color:white;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;font-family:inherit;resize:vertical;"></textarea>
     </div>
-    <div style="margin-bottom:0.75rem">
+    <div style="margin-bottom:0.75rem; display:flex; gap:0.5rem">
       <button class="btn-ghost btn-sm" onclick="toggleTechAns()">💬 View Answer</button>
+      <button class="btn-ghost btn-sm hidden" id="copyTechBtn" onclick="copyToClipboard(document.getElementById('techAns').innerText, 'copyTechBtn')">Copy</button>
     </div>
     <div class="sample-ans hidden" id="techAns">${q.solution || q.answer || 'No answer provided.'}</div>
   `;
 }
 
-function toggleTechAns() {
-  const el = document.getElementById('techAns');
-  const hidden = el.classList.toggle('hidden');
-  if (!hidden) autoMarkComplete();
-}
-
-function renderHR(q) {
+function renderTechnical(q) {
   const tips = (q.tips || []).map(t => `<li>${t}</li>`).join('');
   return `
     <div class="q-body" style="font-size:1.1rem;font-weight:500">"${q.question}"</div>
@@ -660,20 +691,15 @@ function renderHR(q) {
       <label style="display:block;margin-bottom:0.5rem;font-size:0.85rem;color:var(--text2)">Draft your answer:</label>
       <textarea placeholder="How would you answer this?" style="width:100%;min-height:120px;background:var(--bg);color:white;border:1px solid var(--border);border-radius:var(--radius-sm);padding:1rem;font-family:inherit;resize:vertical;"></textarea>
     </div>
-    <div style="margin-bottom:0.75rem">
+    <div style="margin-bottom:0.75rem; display:flex; gap:0.5rem">
       <button class="btn-ghost btn-sm" onclick="toggleHRAns()">💬 Sample Answer</button>
+      <button class="btn-ghost btn-sm hidden" id="copyHRBtn" onclick="copyToClipboard(document.getElementById('hrAns').innerText, 'copyHRBtn')">Copy</button>
     </div>
     <div class="sample-ans hidden" id="hrAns">${q.solution || q.sample || 'No sample answer provided.'}</div>
   `;
 }
 
-function toggleHRAns() {
-  const el = document.getElementById('hrAns');
-  const hidden = el.classList.toggle('hidden');
-  if (!hidden) autoMarkComplete();
-}
-
-function autoMarkComplete() {
+function renderHR(q) {
   if (state.activeQuestion && state.user) {
     toggleComplete(state.activeQuestion.id, true);
   }
