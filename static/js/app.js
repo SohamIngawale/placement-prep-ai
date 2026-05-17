@@ -10,13 +10,24 @@ const state = {
   expandedCategories: {}
 };
 
+// ── GLOBAL SPINNER ──────────────────────────────────────────
+function showSpinner() {
+  document.getElementById('globalSpinner').classList.remove('hidden');
+}
+
+function hideSpinner() {
+  document.getElementById('globalSpinner').classList.add('hidden');
+}
+
 // ── INIT ────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  showSpinner();
   await checkAuth();
   await loadStats();
   await loadCompanies();
   await loadPOTD();
   showPage('home');
+  hideSpinner();
 });
 
 // ── MOBILE NAV ──────────────────────────────────────────────
@@ -220,38 +231,55 @@ function renderCompanyDetails(companyName) {
   if (!companyData) return;
 
   const header = document.getElementById('companyDetailsHeader');
+  const eligibility = companyData.eligibility || "B.Tech/B.E. / MCA, >7.0 CGPA (No active backlogs)";
   header.innerHTML = `
     <div class="container" style="display:flex; align-items:center; gap: 1.5rem">
       <div class="company-logo" style="background:${companyData.color}; width:80px; height:80px; font-size:2rem">${companyData.logo}</div>
       <div>
-        <h1 class="page-title">${companyData.name} Preparation</h1>
+        <h1 class="page-title">${companyData.name} Placement Preparation</h1>
         <p class="page-sub">Rounds: ${companyData.rounds} • Difficulty: <span class="diff-badge diff-${companyData.difficulty}">${companyData.difficulty}</span></p>
-        ${companyData.ctc ? `<div style="margin-top: 0.5rem; color: var(--primary); font-weight: bold; font-size: 1.1rem">💰 Expected CTC: ${companyData.ctc}</div>` : ''}
-        ${companyData.roles ? `<div style="margin-top: 0.2rem; color: var(--text2); font-size: 0.9rem">💼 Target Roles: ${companyData.roles}</div>` : ''}
+        <div style="margin-top: 0.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+          ${companyData.ctc ? `<span style="background: var(--surface2); padding: 0.3rem 0.8rem; border-radius: 4px; border: 1px solid var(--primary); color: var(--primary); font-weight: bold;">💰 Package (CTC): ${companyData.ctc}</span>` : ''}
+          <span style="background: var(--surface2); padding: 0.3rem 0.8rem; border-radius: 4px; border: 1px solid var(--border); color: var(--text2);">🎓 Eligibility: ${eligibility}</span>
+          ${companyData.roles ? `<span style="background: var(--surface2); padding: 0.3rem 0.8rem; border-radius: 4px; border: 1px solid var(--border); color: var(--text2);">💼 Roles: ${companyData.roles}</span>` : ''}
+        </div>
       </div>
     </div>
   `;
 
   const tracks = [
-    { id: 'aptitude', title: 'Aptitude & Reasoning', icon: '🧮', desc: 'Quants, logical reasoning, and data interpretation.' },
-    { id: 'dsa', title: 'Coding / DSA', icon: '⚡', desc: 'Data structures and algorithms problems.' },
-    { id: 'technical', title: 'Technical Interview', icon: '💻', desc: 'Core CS subjects like OOP, DBMS, OS, and System Design.' },
-    { id: 'hr', title: 'HR Interview', icon: '🤝', desc: 'Behavioral questions and cultural fit.' }
+    { id: 'aptitude', title: 'Aptitude & Reasoning', icon: '🧮', desc: 'Frequently asked quantitative and logical reasoning questions.' },
+    { id: 'dsa', title: 'Coding / DSA', icon: '⚡', desc: 'Real previously asked data structure and algorithm problems.' },
+    { id: 'technical', title: 'Technical Interview', icon: '💻', desc: 'Core CS subjects (OOP, DBMS, OS) and System Design.' },
+    { id: 'hr', title: 'HR Interview', icon: '🤝', desc: 'Behavioral questions, cultural fit, and interview tips.' }
   ];
 
   const grid = document.getElementById('companyTracksGrid');
   grid.innerHTML = tracks.map(t => {
-    // Only highlight categories that this company specifically focuses on, but show all options
     const isCore = companyData.categories.includes(t.id);
     return `
       <div class="company-card" style="cursor:pointer; border: 1px solid ${isCore ? 'var(--primary)' : 'var(--border)'}" onclick="showPage('practice', '${t.id}', '${companyData.name}')">
         <div style="font-size: 2.5rem; margin-bottom: 1rem;">${t.icon}</div>
         <h3 style="margin-bottom: 0.5rem">${t.title}</h3>
         <p style="color:var(--text2); font-size: 0.9rem">${t.desc}</p>
-        ${isCore ? '<div style="margin-top: 1rem"><span class="tag">Highly Asked</span></div>' : ''}
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+          ${isCore ? '<span class="tag" style="background: rgba(102, 126, 234, 0.1); color: var(--primary); border: 1px solid var(--primary);">Highly Asked</span>' : '<span></span>'}
+          <span style="color: var(--primary); font-size: 0.85rem; font-weight: bold;">Practice Questions →</span>
+        </div>
       </div>
     `;
   }).join('');
+
+  const roadmapHTML = `
+    <div style="grid-column: 1 / -1; margin-top: 1.5rem; background: linear-gradient(135deg, var(--surface2), var(--bg)); padding: 2rem; border-radius: var(--radius); border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+      <div>
+        <h2 style="margin-bottom: 0.5rem">🗺️ Preparation Roadmap</h2>
+        <p style="color:var(--text2);">Get a structured step-by-step study plan to crack ${companyName}.</p>
+      </div>
+      <button class="btn-primary" onclick="generateCompanyRoadmap('${companyName}')">Generate Roadmap ✨</button>
+    </div>
+  `;
+  grid.innerHTML += roadmapHTML;
 
   // Add "Contribute" section
   const contributeHTML = `
@@ -847,46 +875,52 @@ async function loadProfile() {
 
 // ── PAGE ROUTER ───────────────────────────────────────────────
 function showPage(page, category, company) {
-  const publicPages = ['home', 'companies', 'company-details'];
+  const publicPages = ['home', 'companies', 'company-details', 'about', 'privacy'];
   if (!publicPages.includes(page) && !state.user) {
     openModal('login');
     showToast('Please sign in to access this feature', 'error');
     return;
   }
 
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  const target = document.getElementById('page-' + page);
-  if (target) target.classList.add('active');
+  showSpinner();
 
-  if (page === 'practice') {
-    loadQuestions(category || 'aptitude', company);
-  }
+  // slight delay to let the spinner render
+  setTimeout(() => {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    const target = document.getElementById('page-' + page);
+    if (target) target.classList.add('active');
 
-  if (page === 'companies') {
-    renderCompanyPage();
-  }
-  
-  if (page === 'company-details') {
-    renderCompanyDetails(company);
-  }
-  
-  if (page === 'leaderboard') loadLeaderboard();
-  
-  if (page === 'mock-tests') initMockTestSetup();
-  
-  if (page === 'profile') loadProfile();
+    if (page === 'practice') {
+      loadQuestions(category || 'aptitude', company);
+    }
 
-  if (page === 'dashboard') loadDashboard();
+    if (page === 'companies') {
+      renderCompanyPage();
+    }
+    
+    if (page === 'company-details') {
+      renderCompanyDetails(company);
+    }
+    
+    if (page === 'leaderboard') loadLeaderboard();
+    
+    if (page === 'mock-tests') initMockTestSetup();
+    
+    if (page === 'profile') loadProfile();
 
-  if (page === 'interviews') loadInterviews();
-  
-  if (page === 'resume-builder') loadResume();
+    if (page === 'dashboard') loadDashboard();
 
-  if (page === 'ai-interviewer') initAIInterviewer();
-  
-  if (page === 'roadmaps') resetRoadmap();
-  
-  window.scrollTo(0, 0);
+    if (page === 'interviews') loadInterviews();
+    
+    if (page === 'resume-builder') loadResume();
+
+    if (page === 'ai-interviewer') initAIInterviewer();
+    
+    if (page === 'roadmaps') resetRoadmap();
+    
+    window.scrollTo(0, 0);
+    hideSpinner();
+  }, 150);
 }
 
 // ── MODAL ────────────────────────────────────────────────────
@@ -1913,6 +1947,18 @@ function resetAIInterview() {
 }
 
 // ── ROADMAPS ──────────────────────────────────────────────────
+function generateCompanyRoadmap(companyName) {
+  showPage('roadmaps');
+  setTimeout(() => {
+    document.getElementById('roadmapCompany').value = companyName;
+    document.getElementById('roadmapRole').value = 'Software Engineer';
+    document.getElementById('roadmapDuration').value = '30';
+    document.getElementById('btnGenRoadmap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Optionally trigger generateAIRoadmap() automatically
+    // generateAIRoadmap(); 
+  }, 100);
+}
+
 async function generateAIRoadmap() {
   const company = document.getElementById('roadmapCompany').value.trim();
   const role = document.getElementById('roadmapRole').value.trim();

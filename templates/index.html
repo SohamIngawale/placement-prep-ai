@@ -20,10 +20,16 @@
   <meta property="twitter:description" content="Master your interviews with AI-driven mock tests, real company PYQs, and an intelligent resume builder."/>
   
   <title>PlacePrep — Crack Your Dream Company</title>
+  <link rel="canonical" href="https://placeprep.ai/" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>◈</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"/>
 </head>
 <body>
+<!-- Global Loading Spinner -->
+<div id="globalSpinner" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 9999; display: flex; justify-content: center; align-items: center;">
+  <div class="custom-spinner"></div>
+</div>
 
 <!-- ── NAV ──────────────────────────────────────────────── -->
 <nav class="nav" id="nav">
@@ -815,6 +821,60 @@
       </div>
     </div>
   </div>
+
+  <!-- ABOUT PAGE -->
+  <div class="page" id="page-about">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">About PlacePrep</h1>
+        <p class="page-sub">Our mission is to help every student land their dream tech job.</p>
+      </div>
+    </div>
+    <div class="container section">
+      <div style="background:var(--surface2); padding: 3rem; border-radius: 12px; border: 1px solid var(--border); max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 1rem">Who We Are</h2>
+        <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">PlacePrep was built by industry professionals and former placement coordinators who understand the anxiety and sheer volume of preparation required to crack top tier tech interviews. We believe that with the right guidance, curated resources, and consistent practice, anyone can break into top product and service companies.</p>
+        <h2 style="margin-bottom: 1rem">What We Do</h2>
+        <ul style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem; padding-left: 1.5rem;">
+          <li>Curate highly accurate previous year questions (PYQs) from top companies.</li>
+          <li>Provide AI-driven mock interviews and resume reviews.</li>
+          <li>Build personalized roadmaps based on your current skill level.</li>
+        </ul>
+        <h2 style="margin-bottom: 1rem">Contact Us</h2>
+        <p style="color:var(--text2); line-height: 1.8;">Have questions or feedback? Reach out to us at <a href="mailto:support@placeprep.ai" style="color:var(--primary)">support@placeprep.ai</a></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- PRIVACY POLICY PAGE -->
+  <div class="page" id="page-privacy">
+    <div class="page-header-section">
+      <div class="container">
+        <h1 class="page-title">Privacy Policy</h1>
+      </div>
+    </div>
+    <div class="container section">
+      <div style="background:var(--surface2); padding: 3rem; border-radius: 12px; border: 1px solid var(--border); max-width: 800px; margin: 0 auto;">
+        <h2 style="margin-bottom: 1rem">Information We Collect</h2>
+        <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">We collect information you provide directly to us, such as when you create or modify your account, use our interactive mock interviews, or submit your resume for AI review. This includes your username, email, and any content you upload.</p>
+        <h2 style="margin-bottom: 1rem">How We Use Information</h2>
+        <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">We use the information we collect to provide, maintain, and improve our services, including delivering personalized roadmaps, tracking your progress, and communicating with you about your account.</p>
+        <h2 style="margin-bottom: 1rem">Data Security</h2>
+        <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access. Your resumes and interview data are securely processed and never sold to third parties.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer style="margin-top: 4rem; padding: 2rem 0; background: var(--surface); border-top: 1px solid var(--border); text-align: center;">
+    <div class="container">
+      <div style="display: flex; justify-content: center; gap: 2rem; margin-bottom: 1rem;">
+        <a href="#" onclick="showPage('about')" style="color: var(--text2); text-decoration: none; font-size: 0.9rem;">About Us</a>
+        <a href="#" onclick="showPage('privacy')" style="color: var(--text2); text-decoration: none; font-size: 0.9rem;">Privacy Policy</a>
+      </div>
+      <p style="color: var(--text2); font-size: 0.8rem;">&copy; 2026 PlacePrep. All rights reserved.</p>
+    </div>
+  </footer>
 
 </main>
 
