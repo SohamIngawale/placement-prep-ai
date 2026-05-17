@@ -592,7 +592,7 @@ function renderDSA(q) {
       <div style="display:flex; justify-content:space-between; margin-bottom:1rem; align-items:center;">
         <strong>Optimal Solution</strong>
         <div style="display:flex; gap:0.5rem">
-          <button class="btn-ghost small" onclick="copySolutionText()" id="copySolBtn">Copy</button>
+          <button class="btn-ghost small" onclick="copySolutionText()" id="copySolBtn" title="Copy to Clipboard">📋</button>
           <button class="btn-ghost small" onclick="toggleSolution()" style="color:var(--accent)">Close</button>
         </div>
       </div>
@@ -635,16 +635,49 @@ function copySolutionText() {
 }
 
 function copyToClipboard(text, btnId) {
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById(btnId);
-    const originalText = btn.textContent;
-    btn.textContent = 'Copied! ✅';
+  const btn = document.getElementById(btnId);
+  const originalHTML = btn.innerHTML;
+  
+  const doCopy = (txt) => {
+    return navigator.clipboard.writeText(txt);
+  };
+
+  const fallbackCopy = (txt) => {
+    const textArea = document.createElement("textarea");
+    textArea.value = txt;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    textArea.style.top = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+      return successful ? Promise.resolve() : Promise.reject();
+    } catch (err) {
+      document.body.removeChild(textArea);
+      return Promise.reject(err);
+    }
+  };
+
+  const p = (navigator.clipboard && navigator.clipboard.writeText) ? doCopy(text) : fallbackCopy(text);
+
+  p.then(() => {
+    btn.innerHTML = '✅';
     showToast('Copied to clipboard!', 'success');
     setTimeout(() => {
-      btn.textContent = originalText;
+      btn.innerHTML = originalHTML;
     }, 2000);
   }).catch(err => {
-    showToast('Failed to copy', 'error');
+    console.error('Copy failed:', err);
+    fallbackCopy(text).then(() => {
+        btn.innerHTML = '✅';
+        showToast('Copied to clipboard!', 'success');
+        setTimeout(() => {
+          btn.innerHTML = originalHTML;
+        }, 2000);
+    }).catch(() => showToast('Failed to copy', 'error'));
   });
 }
 
@@ -663,6 +696,7 @@ function toggleHRAns() {
   if (copyBtn) copyBtn.classList.toggle('hidden', hidden);
   if (!hidden) autoMarkComplete();
 }
+function renderTechnical(q) {
   const tags = (q.tags || []).map(t => `<span class="tag">${t}</span>`).join('');
   return `
     <div class="q-body">${q.question}</div>
@@ -675,13 +709,13 @@ function toggleHRAns() {
     </div>
     <div style="margin-bottom:0.75rem; display:flex; gap:0.5rem">
       <button class="btn-ghost btn-sm" onclick="toggleTechAns()">💬 View Answer</button>
-      <button class="btn-ghost btn-sm hidden" id="copyTechBtn" onclick="copyToClipboard(document.getElementById('techAns').innerText, 'copyTechBtn')">Copy</button>
+      <button class="btn-ghost btn-sm hidden" id="copyTechBtn" onclick="copyToClipboard(document.getElementById('techAns').innerText, 'copyTechBtn')" title="Copy to Clipboard">📋</button>
     </div>
     <div class="sample-ans hidden" id="techAns">${q.solution || q.answer || 'No answer provided.'}</div>
   `;
 }
 
-function renderTechnical(q) {
+function renderHR(q) {
   const tips = (q.tips || []).map(t => `<li>${t}</li>`).join('');
   return `
     <div class="q-body" style="font-size:1.1rem;font-weight:500">"${q.question}"</div>
@@ -693,13 +727,13 @@ function renderTechnical(q) {
     </div>
     <div style="margin-bottom:0.75rem; display:flex; gap:0.5rem">
       <button class="btn-ghost btn-sm" onclick="toggleHRAns()">💬 Sample Answer</button>
-      <button class="btn-ghost btn-sm hidden" id="copyHRBtn" onclick="copyToClipboard(document.getElementById('hrAns').innerText, 'copyHRBtn')">Copy</button>
+      <button class="btn-ghost btn-sm hidden" id="copyHRBtn" onclick="copyToClipboard(document.getElementById('hrAns').innerText, 'copyHRBtn')" title="Copy to Clipboard">📋</button>
     </div>
     <div class="sample-ans hidden" id="hrAns">${q.solution || q.sample || 'No sample answer provided.'}</div>
   `;
 }
 
-function renderHR(q) {
+function autoMarkComplete() {
   if (state.activeQuestion && state.user) {
     toggleComplete(state.activeQuestion.id, true);
   }
@@ -938,7 +972,7 @@ async function runCode() {
         showToast('Execution failed with errors.', 'error');
       }
     } else {
-      consoleBody.textContent = data.error || 'Execution failed.';
+      consoleBody.textContent = data.message || data.error || 'Execution failed.';
       consoleBody.style.color = '#EF4444';
     }
   } catch (e) {

@@ -435,13 +435,16 @@ def run_code():
     
     payload = {
         "language": lang,
-        "version": "3.10.0" if lang == 'python' else "*",
+        "version": "*",
         "files": [{"name": "main", "content": code}]
     }
     try:
         response = requests.post(piston_url, json=payload, headers=headers, timeout=10)
-        return jsonify(response.json())
+        res_data = response.json()
+        print(f"Piston Response: {res_data}") # Debug log
+        return jsonify(res_data)
     except Exception as e:
+        print(f"Piston Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 # ───── INTERVIEW EXPERIENCES ─────
