@@ -266,6 +266,11 @@ function renderCompanyDetails(companyName) {
 }
 
 function openAddQuestionModal(companyName) {
+  if (!state.user) {
+    openModal('login');
+    showToast('Please sign in to contribute questions', 'error');
+    return;
+  }
   openModal('addQuestion');
   if (companyName) {
     document.getElementById('addQCompany').value = companyName;
@@ -842,6 +847,13 @@ async function loadProfile() {
 
 // ── PAGE ROUTER ───────────────────────────────────────────────
 function showPage(page, category, company) {
+  const publicPages = ['home', 'companies', 'company-details'];
+  if (!publicPages.includes(page) && !state.user) {
+    openModal('login');
+    showToast('Please sign in to access this feature', 'error');
+    return;
+  }
+
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   const target = document.getElementById('page-' + page);
   if (target) target.classList.add('active');
