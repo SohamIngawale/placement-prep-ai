@@ -439,6 +439,24 @@ a { color: var(--accent); text-decoration: none; }
 #page-practice { display: none; }
 #page-practice.active { display: flex; flex-direction: column; }
 
+/* ── SKELETON LOADING ────────────────────────────────────── */
+.skeleton-box {
+  background: linear-gradient(90deg, var(--bg3) 25%, var(--border2) 50%, var(--bg3) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+  color: transparent !important;
+}
+.skeleton-box * { visibility: hidden; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ── ADMIN DASHBOARD ─────────────────────────────────────── */
+.admin-tab-content { display: none; animation: fadeUp 0.4s ease both; }
+.admin-tab-content.active { display: block; }
+.nav-btn { display: block; padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); color: var(--text2); font-weight: 500; text-decoration: none; transition: all 0.2s; }
+.nav-btn:hover { background: rgba(124,106,247,0.1); color: var(--accent); }
+.nav-btn.active { background: var(--accent); color: white; }
+
 /* ── PROFILE ─────────────────────────────────────────────── */
 .profile-grid { display: grid; grid-template-columns: 280px 1fr; gap: 2rem; margin-bottom: 3rem; }
 .profile-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; text-align: center; }

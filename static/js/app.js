@@ -56,6 +56,11 @@ function updateNavForUser(user) {
   document.getElementById('navUser').classList.remove('hidden');
   const av = document.getElementById('userAvatar');
   av.textContent = (user.username || 'U')[0].toUpperCase();
+  if (user.is_admin) {
+    document.getElementById('navAdminBtn').classList.remove('hidden');
+  } else {
+    document.getElementById('navAdminBtn').classList.add('hidden');
+  }
   
   // Update Hero CTA
   const heroCta = document.getElementById('heroCta');
@@ -917,6 +922,8 @@ function showPage(page, category, company) {
     if (page === 'ai-interviewer') initAIInterviewer();
     
     if (page === 'roadmaps') resetRoadmap();
+
+    if (page === 'admin') loadAdminDashboard();
     
     window.scrollTo(0, 0);
     hideSpinner();
@@ -2078,5 +2085,170 @@ function renderRoadmap(data) {
 function resetRoadmap() {
   document.getElementById('roadmapPlaceholder').classList.remove('hidden');
   document.getElementById('roadmapDisplay').classList.add('hidden');
+}
+
+// ── ADMIN DASHBOARD ──────────────────────────────────────────
+async function loadAdminDashboard() {
+  if (!state.user || !state.user.is_admin) {
+    showPage('home');
+    showToast('Unauthorized access', 'error');
+    return;
+  }
+  try {
+    const res = await fetch('/api/admin/dashboard_stats');
+    if (!res.ok) throw new Error('Failed to load stats');
+    const data = await res.json();
+    
+    document.getElementById('adminTotalUsers').textContent = data.total_users || 0;
+    document.getElementById('adminTotalQs').textContent = data.total_questions || 0;
+    document.getElementById('adminTotalInterviews').textContent = data.total_interviews || 0;
+    document.getElementById('adminTotalProgress').textContent = data.total_progress || 0;
+
+    // Remove skeleton class
+    document.querySelectorAll('.admin-stat').forEach(el => el.classList.remove('skeleton-box'));
+
+    const tbody = document.getElementById('adminRecentUsers');
+    if (tbody) {
+      tbody.innerHTML = (data.recent_users || []).map(u => `
+        <tr>
+          <td style="padding: 0.5rem 0;">${u.username}</td>
+          <td>${u.points}</td>
+          <td style="color:var(--text2)">${u.joined}</td>
+          <td>
+            <button class="btn-ghost small" onclick="editUser(${u.id}, '${u.username}', '${u.role}', ${u.points})">Edit</button>
+            <button class="btn-ghost small" style="color:var(--danger)" onclick="deleteUser(${u.id}, '${u.username}')">Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    if (data.chart_data && data.chart_data.length > 0) {
+      const maxCount = Math.max(...data.chart_data.map(d => d.count), 1); // Avoid div by 0
+      const chartEl = document.getElementById('adminChart');
+      if (chartEl) {
+        chartEl.innerHTML = data.chart_data.map((d, i) => {
+          const pct = Math.max((d.count / maxCount) * 100, 5); // min 5% height
+          return `<div style="flex:1; background:var(--primary); height:${pct}%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards ${i * 0.1}s" title="${d.date}: ${d.count} joined"></div>`;
+        }).join('');
+      }
+    }
+  } catch (e) {
+    showToast('Error loading admin dashboard', 'error');
+  }
+}
+
+function switchAdminTab(tabId) {
+  // Update sidebar buttons
+  document.querySelectorAll('#adminSidebar .nav-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  const activeBtn = Array.from(document.querySelectorAll('#adminSidebar .nav-btn')).find(b => b.textContent.toLowerCase().includes(tabId));
+  if (activeBtn) activeBtn.classList.add('active');
+
+  // Update tabs
+  document.querySelectorAll('.admin-tab-content').forEach(tab => {
+    tab.classList.remove('active');
+  });
+  const target = document.getElementById('adminTab' + tabId.charAt(0).toUpperCase() + tabId.slice(1));
+  if (target) {
+    target.classList.add('active');
+  }
+
+  // Update title
+  const titles = {
+    'overview': 'Platform Overview',
+    'users': 'User Management',
+    'questions': 'Questions Management'
+  };
+  document.getElementById('adminTabTitle').textContent = titles[tabId] || 'Admin Dashboard';
+
+  if (tabId === 'users') {
+    loadAdminUsers();
+  }
+}
+
+async function loadAdminUsers() {
+  try {
+    const res = await fetch('/api/admin/users');
+    const users = await res.json();
+    const tab = document.getElementById('adminTabUsers');
+    if (tab) {
+      tab.innerHTML = `
+        <div class="dash-card" style="overflow-x:auto;">
+          <table style="width: 100%; text-align: left; border-collapse:collapse;">
+            <thead>
+              <tr style="border-bottom: 1px solid var(--border);">
+                <th style="padding: 0.75rem 0;">ID</th>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Points</th>
+                <th>Joined</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${users.map(u => `
+                <tr style="border-bottom: 1px solid var(--border2);">
+                  <td style="padding: 0.75rem 0; color:var(--text2)">#${u.id}</td>
+                  <td style="font-weight:600">${u.username}</td>
+                  <td><span class="tag" style="background:${u.role === 'admin' ? 'rgba(247,106,154,0.1)' : 'var(--bg3)'}; color:${u.role === 'admin' ? 'var(--hard)' : 'var(--text2)'}">${u.role}</span></td>
+                  <td>${u.points}</td>
+                  <td style="color:var(--text2)">${u.joined}</td>
+                  <td>
+                    <button class="btn-ghost small" onclick="editUser(${u.id}, '${u.username}', '${u.role}', ${u.points})">Edit</button>
+                    <button class="btn-ghost small" style="color:var(--danger)" onclick="deleteUser(${u.id}, '${u.username}')">Delete</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+  } catch (e) {
+    showToast('Failed to load users', 'error');
+  }
+}
+
+async function deleteUser(id, username) {
+  if (!confirm(`Are you sure you want to completely delete user: ${username}?`)) return;
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (data.success) {
+      showToast('User deleted successfully', 'success');
+      loadAdminUsers();
+      loadAdminDashboard(); // Refresh overview
+    } else {
+      showToast(data.error || 'Failed to delete user', 'error');
+    }
+  } catch (e) {
+    showToast('Error deleting user', 'error');
+  }
+}
+
+async function editUser(id, username, currentRole, currentPoints) {
+  const newRole = prompt(`Enter new role for ${username} (admin or user):`, currentRole);
+  if (!newRole) return;
+  const newPoints = prompt(`Enter new points for ${username}:`, currentPoints);
+  if (newPoints === null) return;
+
+  try {
+    const res = await fetch(`/api/admin/users/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role: newRole, points: parseInt(newPoints) || 0 })
+    });
+    const data = await res.json();
+    if (data.success) {
+      showToast('User updated successfully', 'success');
+      loadAdminUsers();
+      loadAdminDashboard();
+    } else {
+      showToast(data.error || 'Failed to update user', 'error');
+    }
+  } catch (e) {
+    showToast('Error updating user', 'error');
+  }
 }
 

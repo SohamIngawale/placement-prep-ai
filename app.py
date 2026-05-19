@@ -20,6 +20,7 @@ import anthropic
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_change_me_in_production')
+app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
@@ -56,6 +57,7 @@ class User(db.Model):
     last_activity_date = db.Column(db.Date)
     otp = db.Column(db.String(6))
     otp_expiry = db.Column(db.DateTime)
+    role = db.Column(db.String(20), default='user')
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -90,7 +92,7 @@ with app.app_context():
     try:
         from sqlalchemy import text
         # Ignore errors if columns already exist
-        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry"]
+        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry", "is_admin", "role"]
         for col in cols:
             try:
                 if col == "last_activity_date":
@@ -99,6 +101,10 @@ with app.app_context():
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
                 elif col == "otp":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} VARCHAR(6)"))
+                elif col == "is_admin":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} BOOLEAN DEFAULT 0"))
+                elif col == "role":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} VARCHAR(20) DEFAULT 'user'"))
                 else:
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} INTEGER DEFAULT 0"))
                 db.session.commit()
@@ -136,8 +142,13 @@ def register():
     user = User(username=data['username'], email=data['email'], password_hash=hashed)
     db.session.add(user)
     db.session.commit()
+    session.permanent = True
     session['user'] = user.username
-    return jsonify({"username": user.username})
+    return jsonify({
+        "username": user.username,
+        "points": user.points,
+        "is_admin": user.role == 'admin'
+    })
 
 @app.route('/api/login', methods=['POST'])
 def login():
@@ -148,8 +159,13 @@ def login():
     if not user or user.password_hash != hashed:
         return jsonify({"error": "Invalid credentials"}), 401
 
+    session.permanent = True
     session['user'] = user.username
-    return jsonify({"username": user.username})
+    return jsonify({
+        "username": user.username,
+        "points": user.points,
+        "is_admin": user.role == 'admin'
+    })
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -207,7 +223,8 @@ def me():
     return jsonify({
         "logged_in": True, 
         "username": session['user'],
-        "points": user.points if user else 0
+        "points": user.points if user else 0,
+        "is_admin": (user.role == 'admin') if user else False
     })
 
 # ───── QUESTIONS ─────
@@ -582,8 +599,90 @@ def generate_roadmap():
         return jsonify({"error": str(e)}), 500
 
 # ───── ADMIN ─────
+@app.route('/api/admin/dashboard_stats')
+def admin_dashboard_stats():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    total_users = User.query.count()
+    total_interviews = InterviewExperience.query.count()
+    total_progress = Progress.query.filter_by(completed=True).count()
+    
+    # recent users
+    recent_users = User.query.order_by(User.joined.desc()).limit(5).all()
+    recent_users_data = [{"id": u.id, "username": u.username, "points": u.points, "joined": u.joined.strftime('%Y-%m-%d')} for u in recent_users]
+
+    # chart data (last 5 days)
+    five_days_ago = datetime.utcnow() - timedelta(days=4)
+    all_users = User.query.filter(User.joined >= five_days_ago).all()
+    counts = {}
+    for i in range(5):
+        d = (datetime.utcnow() - timedelta(days=4-i)).strftime('%Y-%m-%d')
+        counts[d] = 0
+    for u in all_users:
+        d = u.joined.strftime('%Y-%m-%d')
+        if d in counts:
+            counts[d] += 1
+    chart_data = [{"date": k, "count": v} for k, v in counts.items()]
+
+    return jsonify({
+        "total_users": total_users,
+        "total_questions": len(ALL_QUESTIONS),
+        "total_interviews": total_interviews,
+        "total_progress": total_progress,
+        "recent_users": recent_users_data,
+        "chart_data": chart_data
+    })
+
+@app.route('/api/admin/users', methods=['GET'])
+def admin_get_users():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    users = User.query.order_by(User.joined.desc()).all()
+    return jsonify([{
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "points": u.points,
+        "role": u.role,
+        "joined": u.joined.strftime('%Y-%m-%d')
+    } for u in users])
+
+@app.route('/api/admin/users/<int:user_id>', methods=['PUT', 'DELETE'])
+def admin_manage_user(user_id):
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    admin_user = User.query.filter_by(username=session['user']).first()
+    if not admin_user or admin_user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    target_user = User.query.get(user_id)
+    if not target_user: return jsonify({"error": "User not found"}), 404
+    
+    if target_user.id == admin_user.id:
+        return jsonify({"error": "Cannot modify your own account"}), 400
+
+    if request.method == 'DELETE':
+        db.session.delete(target_user)
+        db.session.commit()
+        return jsonify({"success": True})
+        
+    if request.method == 'PUT':
+        data = request.json
+        if 'role' in data:
+            target_user.role = data['role']
+        if 'points' in data:
+            target_user.points = int(data['points'])
+        db.session.commit()
+        return jsonify({"success": True})
+
 @app.route('/api/admin/add_question', methods=['POST'])
 def add_question():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
     data = request.json
     company = data.get('company')
     category = data.get('category', 'technical')

@@ -70,6 +70,7 @@
     
     <div class="nav-user hidden" id="navUser">
       <div class="user-avatar" onclick="showPage('dashboard')" id="userAvatar" title="Dashboard">U</div>
+      <button class="btn-ghost small hidden" id="navAdminBtn" onclick="showPage('admin')">Admin</button>
       <button class="btn-ghost small" onclick="logout()">Logout</button>
     </div>
 
@@ -861,6 +862,112 @@
         <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">We use the information we collect to provide, maintain, and improve our services, including delivering personalized roadmaps, tracking your progress, and communicating with you about your account.</p>
         <h2 style="margin-bottom: 1rem">Data Security</h2>
         <p style="color:var(--text2); line-height: 1.8; margin-bottom: 2rem;">We take reasonable measures to help protect information about you from loss, theft, misuse and unauthorized access. Your resumes and interview data are securely processed and never sold to third parties.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADMIN DASHBOARD PAGE -->
+  <div class="page" id="page-admin">
+    <div class="practice-layout" style="min-height: calc(100vh - 70px);">
+      <aside class="practice-sidebar" style="background: var(--surface2);">
+        <div class="sidebar-header">
+          <h3>Admin Panel</h3>
+        </div>
+        <ul style="list-style:none; padding:1rem; display:flex; flex-direction:column; gap:0.5rem;" id="adminSidebar">
+          <li><a href="#" class="nav-btn active" onclick="switchAdminTab('overview')">📊 Overview</a></li>
+          <li><a href="#" class="nav-btn" onclick="switchAdminTab('users')">👥 Users</a></li>
+          <li><a href="#" class="nav-btn" onclick="switchAdminTab('questions')">📝 Questions</a></li>
+        </ul>
+      </aside>
+      <div class="practice-main" style="padding: 2rem;">
+        <h2 id="adminTabTitle" style="margin-bottom: 2rem;">Platform Overview</h2>
+        
+        <!-- Overview Tab -->
+        <div id="adminTabOverview" class="admin-tab-content active">
+          <div class="dash-stats-row" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom:2rem;">
+            <div class="dash-stat-card admin-stat skeleton-box">
+              <div class="dash-stat-icon" style="background:rgba(124,106,247,0.15); color:var(--accent)">👥</div>
+              <div class="dash-stat-num" id="adminTotalUsers">0</div>
+              <div class="dash-stat-label">Total Users</div>
+            </div>
+            <div class="dash-stat-card admin-stat skeleton-box">
+              <div class="dash-stat-icon" style="background:rgba(86,207,178,0.15); color:var(--accent2)">📝</div>
+              <div class="dash-stat-num" id="adminTotalQs">0</div>
+              <div class="dash-stat-label">Questions</div>
+            </div>
+            <div class="dash-stat-card admin-stat skeleton-box">
+              <div class="dash-stat-icon" style="background:rgba(247,192,106,0.15); color:var(--medium)">🤝</div>
+              <div class="dash-stat-num" id="adminTotalInterviews">0</div>
+              <div class="dash-stat-label">Interviews Shared</div>
+            </div>
+            <div class="dash-stat-card admin-stat skeleton-box">
+              <div class="dash-stat-icon" style="background:rgba(247,106,154,0.15); color:var(--hard)">✅</div>
+              <div class="dash-stat-num" id="adminTotalProgress">0</div>
+              <div class="dash-stat-label">Questions Solved</div>
+            </div>
+          </div>
+          
+          <div class="dash-grid" style="margin-top:2rem">
+            <div class="dash-card">
+               <h3>📈 Activity Analytics</h3>
+               <div id="adminChart" style="height:250px; background:var(--bg); border-radius:8px; display:flex; align-items:flex-end; padding:1rem; gap:10px; border:1px solid var(--border); overflow:hidden;">
+                 <!-- Dummy bars for chart -->
+                 <div style="flex:1; background:var(--primary); height:40%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards 0.1s"></div>
+                 <div style="flex:1; background:var(--primary); height:70%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards 0.2s"></div>
+                 <div style="flex:1; background:var(--primary); height:50%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards 0.3s"></div>
+                 <div style="flex:1; background:var(--primary); height:90%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards 0.4s"></div>
+                 <div style="flex:1; background:var(--primary); height:60%; border-radius:4px 4px 0 0; transition:0.8s ease-out; opacity:0; animation:fadeUp 0.5s forwards 0.5s"></div>
+               </div>
+            </div>
+            <div class="dash-card" style="overflow-x:auto;">
+              <h3>👥 Recent Users</h3>
+              <table style="width: 100%; text-align: left; margin-top: 1rem; border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <th style="padding: 0.5rem 0;">User</th>
+                    <th>Points</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminRecentUsers">
+                   <tr><td colspan="3" class="skeleton-box" style="height:40px; margin-bottom:10px; display:block; width:100%"></td></tr>
+                   <tr><td colspan="3" class="skeleton-box" style="height:40px; margin-bottom:10px; display:block; width:100%"></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions Tab -->
+        <div id="adminTabQuestions" class="admin-tab-content">
+           <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; margin-bottom:1.5rem;">
+             <input type="text" placeholder="Search questions..." style="padding:0.8rem; border-radius:6px; background:var(--bg); border:1px solid var(--border); color:white; width:100%; max-width:400px;" onkeyup="showToast('Search coming soon', 'info')">
+             <button class="btn-primary" onclick="openAddQuestionModal()">+ Add New Question</button>
+           </div>
+           <div class="dash-card" style="overflow-x:auto;">
+              <table style="width: 100%; text-align: left; border-collapse:collapse;">
+                <thead>
+                  <tr style="border-bottom: 1px solid var(--border);">
+                    <th style="padding: 0.75rem 0;">ID / Title</th>
+                    <th>Category</th>
+                    <th>Difficulty</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="adminQuestionsList">
+                   <tr><td colspan="4" style="text-align:center; padding:2rem; color:var(--text2)">Backend API needed for questions management</td></tr>
+                </tbody>
+              </table>
+           </div>
+        </div>
+        
+        <!-- Users Tab -->
+        <div id="adminTabUsers" class="admin-tab-content">
+           <div class="dash-card">
+             <p style="color:var(--text2)">Full user management table coming soon.</p>
+           </div>
+        </div>
+
       </div>
     </div>
   </div>
