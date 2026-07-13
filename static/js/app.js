@@ -86,7 +86,14 @@ async function submitLogin() {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
-    if (!res.ok) { showFormError('loginError', data.error); return; }
+    if (!res.ok) { 
+      showFormError('loginError', data.error);
+      if (data.requires_verification) {
+        state.tempVerifyUsername = username;
+        setTimeout(() => openModal('verify-email'), 1500);
+      }
+      return; 
+    }
     state.user = data;
     updateNavForUser(data);
     await loadProgress();
@@ -110,6 +117,14 @@ async function submitRegister() {
     });
     const data = await res.json();
     if (!res.ok) { showFormError('regError', data.error); return; }
+    
+    if (data.requires_verification) {
+      showToast(data.message, 'success');
+      state.tempVerifyUsername = username;
+      openModal('verify-email');
+      return;
+    }
+    
     state.user = data;
     updateNavForUser(data);
     await loadProgress();
@@ -117,14 +132,16 @@ async function submitRegister() {
     showToast('Account created! Welcome, ' + data.username + ' 🚀', 'success');
   } catch (e) { showFormError('regError', 'Connection error. Try again.'); }
 }
-
-async function logout() {
+async function submitLogout() {
   await fetch('/api/logout', { method: 'POST' });
+
   state.user = null;
   state.progress = { completed: [], bookmarks: [] };
+
   document.getElementById('navAuth').classList.remove('hidden');
   document.getElementById('navUser').classList.add('hidden');
   showPage('home');
+  closeModal();
   showToast('Logged out successfully');
 }
 
@@ -934,7 +951,7 @@ function showPage(page, category, company) {
 function openModal(type) {
   document.getElementById('modalOverlay').classList.remove('hidden');
   // Hide all forms
-  ['formLogin', 'formRegister', 'formInterview', 'formAddQuestion', 'formForgotPassword', 'formResetPassword'].forEach(id => {
+  ['formLogin', 'formRegister', 'formVerifyEmail', 'formLogout', 'formInterview', 'formAddQuestion', 'formForgotPassword', 'formResetPassword'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.classList.add('hidden');
   });
@@ -946,7 +963,7 @@ function openModal(type) {
   if (formEl) formEl.classList.remove('hidden');
   
   // Clear errors
-  ['loginError','regError', 'forgotError', 'resetError'].forEach(id => {
+  ['loginError','regError', 'verifyError', 'forgotError', 'resetError'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.classList.add('hidden'); el.textContent = ''; }
   });
@@ -992,6 +1009,75 @@ async function submitResetPassword() {
     showToast('Password updated! You can now login.', 'success');
     openModal('login');
   } catch (e) { showFormError('resetError', 'Connection error'); }
+}
+
+async function submitVerifyEmail() {
+  const otp = document.getElementById('verifyOtp').value.trim();
+  const username = state.tempVerifyUsername;
+  
+  if (!otp) { showFormError('verifyError', 'Please enter the OTP'); return; }
+  
+  try {
+    const res = await fetch('/api/verify-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, otp })
+    });
+    const data = await res.json();
+    if (!res.ok) { showFormError('verifyError', data.error); return; }
+    
+    state.user = data;
+    updateNavForUser(data);
+    await loadProgress();
+    closeModal();
+    showToast('Email verified successfully! Welcome, ' + data.username, 'success');
+  } catch (e) { showFormError('verifyError', 'Connection error'); }
+}
+
+let resendInterval = null;
+async function resendOtp() {
+  const username = state.tempVerifyUsername;
+  
+  try {
+    const res = await fetch('/api/resend-otp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    const data = await res.json();
+    if (!res.ok) { 
+      if (res.status === 429) showFormError('verifyError', data.error);
+      else showFormError('verifyError', data.error);
+      return; 
+    }
+    
+    showToast(data.message, 'success');
+    startResendTimer();
+  } catch (e) { showFormError('verifyError', 'Connection error'); }
+}
+
+function startResendTimer() {
+  const btn = document.getElementById('resendOtpBtn');
+  const timerDiv = document.getElementById('resendTimer');
+  const countdownSpan = document.getElementById('resendCountdown');
+  
+  btn.style.display = 'none';
+  timerDiv.style.display = 'block';
+  
+  let timeLeft = 60;
+  countdownSpan.textContent = timeLeft;
+  
+  if (resendInterval) clearInterval(resendInterval);
+  
+  resendInterval = setInterval(() => {
+    timeLeft -= 1;
+    countdownSpan.textContent = timeLeft;
+    if (timeLeft <= 0) {
+      clearInterval(resendInterval);
+      btn.style.display = 'inline-block';
+      timerDiv.style.display = 'none';
+    }
+  }, 1000);
 }
 
 async function runCode() {

@@ -1,6 +1,5 @@
 from flask import Flask, render_template, request, jsonify, session
 from flask_sqlalchemy import SQLAlchemy
-import hashlib
 import io
 import requests
 import json
@@ -13,6 +12,11 @@ try:
 except ImportError:
     pass
 
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
 from dotenv import load_dotenv
 load_dotenv() # Load environment variables from .env file
 
@@ -21,6 +25,25 @@ import anthropic
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev_secret_key_change_me_in_production')
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)
+app.config['SESSION_COOKIE_SECURE'] = os.environ.get('FLASK_ENV') == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Flask-Mail Config
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() == 'true'
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+mail = Mail(app)
+
+# Flask-Limiter Config
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 ANTHROPIC_API_KEY = os.environ.get('ANTHROPIC_API_KEY')
 anthropic_client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY) if ANTHROPIC_API_KEY else None
@@ -57,6 +80,8 @@ class User(db.Model):
     last_activity_date = db.Column(db.Date)
     otp = db.Column(db.String(6))
     otp_expiry = db.Column(db.DateTime)
+    otp_last_sent = db.Column(db.DateTime)
+    is_verified = db.Column(db.Boolean, default=False)
     role = db.Column(db.String(20), default='user')
 
 class Activity(db.Model):
@@ -92,7 +117,7 @@ with app.app_context():
     try:
         from sqlalchemy import text
         # Ignore errors if columns already exist
-        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry", "is_admin", "role"]
+        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry", "is_admin", "role", "is_verified", "otp_last_sent"]
         for col in cols:
             try:
                 if col == "last_activity_date":
@@ -101,6 +126,10 @@ with app.app_context():
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
                 elif col == "otp":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} VARCHAR(6)"))
+                elif col == "is_verified":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} BOOLEAN DEFAULT 0"))
+                elif col == "otp_last_sent":
+                    db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
                 elif col == "is_admin":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} BOOLEAN DEFAULT 0"))
                 elif col == "role":
@@ -132,32 +161,59 @@ for q in ALL_QUESTIONS:
 print(f"Loaded {len(ALL_QUESTIONS)} questions across {list(QUESTIONS.keys())}")
 
 # ───── AUTH ─────
+def send_otp_email(to_email, otp, subject="Your OTP Code"):
+    if not app.config.get('MAIL_USERNAME'):
+        print(f"DEBUG: Mail not configured. OTP for {to_email} is {otp}")
+        return True
+    try:
+        msg = Message(subject, sender=app.config.get('MAIL_USERNAME'), recipients=[to_email])
+        msg.body = f"Your OTP is: {otp}\n\nThis OTP is valid for 10 minutes."
+        mail.send(msg)
+        return True
+    except Exception as e:
+        print(f"Error sending email: {e}")
+        return False
+
 @app.route('/api/register', methods=['POST'])
+@limiter.limit("5 per minute")
 def register():
     data = request.json
     if User.query.filter_by(username=data['username']).first():
-        return jsonify({"error": "User exists"}), 400
+        return jsonify({"error": "Username already taken"}), 400
 
-    hashed = hashlib.sha256(data['password'].encode()).hexdigest()
-    user = User(username=data['username'], email=data['email'], password_hash=hashed)
+    if User.query.filter_by(email=data['email']).first():
+        return jsonify({"error": "Email already registered"}), 400
+
+    hashed = generate_password_hash(data['password'])
+    user = User(username=data['username'], email=data['email'], password_hash=hashed, is_verified=False)
+    
+    otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    user.otp = otp
+    user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    user.otp_last_sent = datetime.utcnow()
+    
     db.session.add(user)
     db.session.commit()
-    session.permanent = True
-    session['user'] = user.username
+    
+    send_otp_email(user.email, otp, "Verify your PlacePrep account")
+    
     return jsonify({
+        "message": "Registration successful. Please verify your email.",
         "username": user.username,
-        "points": user.points,
-        "is_admin": user.role == 'admin'
+        "requires_verification": True
     })
 
 @app.route('/api/login', methods=['POST'])
+@limiter.limit("10 per minute")
 def login():
     data = request.json
-    hashed = hashlib.sha256(data['password'].encode()).hexdigest()
     user = User.query.filter_by(username=data['username']).first()
 
-    if not user or user.password_hash != hashed:
+    if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({"error": "Invalid credentials"}), 401
+
+    if not user.is_verified:
+        return jsonify({"error": "Please verify your email first", "requires_verification": True}), 403
 
     session.permanent = True
     session['user'] = user.username
@@ -166,6 +222,66 @@ def login():
         "points": user.points,
         "is_admin": user.role == 'admin'
     })
+
+@app.route('/api/verify-email', methods=['POST'])
+@limiter.limit("5 per minute")
+def verify_email():
+    data = request.json
+    username = data.get('username')
+    otp = data.get('otp')
+    
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    if user.is_verified:
+        return jsonify({"message": "Email already verified"}), 200
+        
+    if user.otp != otp:
+        return jsonify({"error": "Invalid OTP"}), 400
+        
+    if user.otp_expiry and user.otp_expiry < datetime.utcnow():
+        return jsonify({"error": "OTP expired"}), 400
+        
+    user.is_verified = True
+    user.otp = None
+    user.otp_expiry = None
+    db.session.commit()
+    
+    session.permanent = True
+    session['user'] = user.username
+    
+    return jsonify({
+        "message": "Email verified successfully",
+        "username": user.username,
+        "points": user.points,
+        "is_admin": user.role == 'admin'
+    })
+
+@app.route('/api/resend-otp', methods=['POST'])
+@limiter.limit("3 per minute")
+def resend_otp():
+    data = request.json
+    username = data.get('username')
+    
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    if user.is_verified:
+        return jsonify({"error": "Email already verified"}), 400
+        
+    if user.otp_last_sent and (datetime.utcnow() - user.otp_last_sent).total_seconds() < 60:
+        return jsonify({"error": "Please wait before requesting another OTP"}), 429
+        
+    otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
+    user.otp = otp
+    user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    user.otp_last_sent = datetime.utcnow()
+    db.session.commit()
+    
+    send_otp_email(user.email, otp, "Verify your PlacePrep account (Resend)")
+    return jsonify({"message": "OTP sent to your email"})
 
 @app.route('/api/logout', methods=['POST'])
 def logout():
@@ -173,26 +289,29 @@ def logout():
     return jsonify({"message": "Logged out"})
 
 @app.route('/api/forgot-password', methods=['POST'])
+@limiter.limit("3 per minute")
 def forgot_password():
     data = request.json
     email = data.get('email')
     user = User.query.filter_by(email=email).first()
     
     if not user:
-        # For security, don't reveal if user exists, but here we'll be helpful
         return jsonify({"error": "No account found with this email"}), 404
     
-    # Generate 6-digit OTP
+    if user.otp_last_sent and (datetime.utcnow() - user.otp_last_sent).total_seconds() < 60:
+        return jsonify({"error": "Please wait before requesting another OTP"}), 429
+
     otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
     user.otp = otp
     user.otp_expiry = datetime.utcnow() + timedelta(minutes=10)
+    user.otp_last_sent = datetime.utcnow()
     db.session.commit()
     
-    # SIMULATION: In a real app, send email. Here, we just return it or log it.
-    print(f"DEBUG: Password reset OTP for {user.username} ({user.email}): {otp}")
-    return jsonify({"message": "OTP sent to your email (Simulated)", "username": user.username})
+    send_otp_email(user.email, otp, "Password Reset OTP")
+    return jsonify({"message": "OTP sent to your email", "username": user.username})
 
 @app.route('/api/reset-password', methods=['POST'])
+@limiter.limit("5 per minute")
 def reset_password():
     data = request.json
     username = data.get('username')
@@ -203,11 +322,10 @@ def reset_password():
     if not user or user.otp != otp:
         return jsonify({"error": "Invalid OTP"}), 400
     
-    if user.otp_expiry < datetime.utcnow():
+    if user.otp_expiry and user.otp_expiry < datetime.utcnow():
         return jsonify({"error": "OTP expired"}), 400
     
-    # Reset password
-    hashed = hashlib.sha256(new_password.encode()).hexdigest()
+    hashed = generate_password_hash(new_password)
     user.password_hash = hashed
     user.otp = None
     user.otp_expiry = None
