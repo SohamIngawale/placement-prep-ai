@@ -83,6 +83,7 @@ class User(db.Model):
     otp_last_sent = db.Column(db.DateTime)
     is_verified = db.Column(db.Boolean, default=False)
     role = db.Column(db.String(20), default='user')
+    is_banned = db.Column(db.Boolean, default=False)
 
 class Activity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -117,7 +118,7 @@ with app.app_context():
     try:
         from sqlalchemy import text
         # Ignore errors if columns already exist
-        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry", "is_admin", "role", "is_verified", "otp_last_sent"]
+        cols = ["points", "current_streak", "max_streak", "last_activity_date", "otp", "otp_expiry", "is_admin", "role", "is_verified", "otp_last_sent", "is_banned"]
         for col in cols:
             try:
                 if col == "last_activity_date":
@@ -126,7 +127,7 @@ with app.app_context():
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
                 elif col == "otp":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} VARCHAR(6)"))
-                elif col == "is_verified":
+                elif col in ["is_verified", "is_banned"]:
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} BOOLEAN DEFAULT 0"))
                 elif col == "otp_last_sent":
                     db.session.execute(text(f"ALTER TABLE user ADD COLUMN {col} DATETIME"))
@@ -146,6 +147,15 @@ with app.app_context():
 @app.route('/')
 def home():
     return render_template('index.html')
+
+@app.route('/admin')
+def admin_page():
+    if 'user' not in session: 
+        return render_template('index.html')
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin':
+        return render_template('index.html')
+    return render_template('admin.html')
 
 # ───── LOAD QUESTIONS FROM JSON ─────
 DATA_FILE = os.path.join(os.path.dirname(__file__), 'data', 'questions.json')
@@ -211,6 +221,9 @@ def login():
 
     if not user or not check_password_hash(user.password_hash, data['password']):
         return jsonify({"error": "Invalid credentials"}), 401
+
+    if getattr(user, 'is_banned', False):
+        return jsonify({"error": "Your account has been banned."}), 403
 
     if not user.is_verified:
         return jsonify({"error": "Please verify your email first", "requires_verification": True}), 403
@@ -439,72 +452,16 @@ def stats():
     })
 
 # ───── COMPANIES ─────
+COMPANIES_FILE = os.path.join(os.path.dirname(__file__), 'data', 'companies.json')
+
 @app.route('/api/companies')
 def companies():
-    return jsonify({
-        "product_mncs": [
-            {"name": "Google", "logo": "G", "color": "#4285F4", "difficulty": "Hard", "rounds": "DSA + System Design + Technical", "categories": ["dsa", "technical"], "ctc": "25-45 LPA", "roles": "Software Engineer, SRE"},
-            {"name": "Amazon", "logo": "A", "color": "#FF9900", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + HR", "categories": ["dsa", "technical", "hr"], "ctc": "20-40 LPA", "roles": "SDE-1, Cloud Support"},
-            {"name": "Microsoft", "logo": "M", "color": "#00A4EF", "difficulty": "Hard", "rounds": "DSA + System Design + Technical", "categories": ["dsa", "technical"], "ctc": "22-42 LPA", "roles": "Software Engineer"},
-            {"name": "Meta", "logo": "F", "color": "#0668E1", "difficulty": "Hard", "rounds": "DSA + System Design + Behavioral", "categories": ["dsa", "technical"], "ctc": "30-50 LPA", "roles": "Front-End, Back-End"},
-            {"name": "Apple", "logo": "🍎", "color": "#555555", "difficulty": "Hard", "rounds": "DSA + System Design + Domain", "categories": ["dsa", "technical"], "ctc": "25-45 LPA", "roles": "Hardware Engineer, SWE"},
-            {"name": "Adobe", "logo": "Ad", "color": "#FF0000", "difficulty": "Medium-Hard", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-35 LPA", "roles": "MTS, Data Scientist"},
-            {"name": "Oracle", "logo": "O", "color": "#F80000", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "15-28 LPA", "roles": "Server Technology, Applications"},
-            {"name": "Salesforce", "logo": "Sf", "color": "#00A1E0", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + HR", "categories": ["dsa", "technical", "hr"], "ctc": "20-35 LPA", "roles": "AMTS"},
-            {"name": "SAP", "logo": "S", "color": "#0FAAFF", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "14-22 LPA", "roles": "Developer Associate"},
-            {"name": "Cisco", "logo": "Ci", "color": "#049FD9", "difficulty": "Medium", "rounds": "DSA + Networking + HR", "categories": ["dsa", "technical", "hr"], "ctc": "15-25 LPA", "roles": "Network Engineer, SDE"},
-            {"name": "Intel", "logo": "In", "color": "#0071C5", "difficulty": "Medium-Hard", "rounds": "DSA + Core CS + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-28 LPA", "roles": "System Software Engineer"},
-            {"name": "Qualcomm", "logo": "Q", "color": "#3253DC", "difficulty": "Medium-Hard", "rounds": "DSA + Embedded + Technical", "categories": ["dsa", "technical"], "ctc": "16-30 LPA", "roles": "Hardware/Software Engineer"},
-            {"name": "Samsung", "logo": "S", "color": "#1428A0", "difficulty": "Medium-Hard", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "14-20 LPA", "roles": "R&D Engineer"},
-            {"name": "VMware", "logo": "V", "color": "#607078", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-32 LPA", "roles": "MTS"},
-            {"name": "PayPal", "logo": "PP", "color": "#003087", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "20-30 LPA", "roles": "SDE-1"},
-            {"name": "Uber", "logo": "U", "color": "#000000", "difficulty": "Hard", "rounds": "DSA + System Design + Behavioral", "categories": ["dsa", "technical"], "ctc": "30-55 LPA", "roles": "Software Engineer-1"},
-            {"name": "Atlassian", "logo": "At", "color": "#0052CC", "difficulty": "Hard", "rounds": "DSA + System Design + Values", "categories": ["dsa", "technical"], "ctc": "28-48 LPA", "roles": "SDE"}
-        ],
-        "startups_unicorns": [
-            {"name": "Flipkart", "logo": "F", "color": "#F7D03F", "difficulty": "Medium-Hard", "rounds": "DSA + Machine Coding + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-32 LPA", "roles": "SDE-1"},
-            {"name": "Walmart", "logo": "W", "color": "#0071DC", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-28 LPA", "roles": "SWE"},
-            {"name": "Zoho", "logo": "Z", "color": "#C8202B", "difficulty": "Medium", "rounds": "Programming + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "8-14 LPA", "roles": "MTS"},
-            {"name": "Razorpay", "logo": "R", "color": "#0C2651", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + Culture", "categories": ["dsa", "technical"], "ctc": "20-35 LPA", "roles": "SDE-1"},
-            {"name": "PhonePe", "logo": "Ph", "color": "#5F259F", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-30 LPA", "roles": "SDE"},
-            {"name": "Swiggy", "logo": "Sw", "color": "#FC8019", "difficulty": "Medium", "rounds": "DSA + Machine Coding + HR", "categories": ["dsa", "technical", "hr"], "ctc": "20-35 LPA", "roles": "SDE"},
-            {"name": "Paytm", "logo": "P", "color": "#00BAF2", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "12-20 LPA", "roles": "SDE"},
-            {"name": "Freshworks", "logo": "Fw", "color": "#F36C21", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "10-18 LPA", "roles": "Software Engineer"},
-            {"name": "Sprinklr", "logo": "Sp", "color": "#1B365D", "difficulty": "Medium-Hard", "rounds": "DSA + System Design + HR", "categories": ["dsa", "technical", "hr"], "ctc": "22-38 LPA", "roles": "Product Engineer"},
-            {"name": "Cred", "logo": "C", "color": "#2D2D2D", "difficulty": "Hard", "rounds": "DSA + System Design + Culture", "categories": ["dsa", "technical"], "ctc": "25-45 LPA", "roles": "Backend Engineer"},
-            {"name": "Myntra", "logo": "M", "color": "#FF3F6C", "difficulty": "Medium", "rounds": "DSA + Machine Coding + HR", "categories": ["dsa", "technical", "hr"], "ctc": "15-28 LPA", "roles": "SDE"},
-            {"name": "Zomato", "logo": "Z", "color": "#E23744", "difficulty": "Medium", "rounds": "DSA + Technical + HR", "categories": ["dsa", "technical", "hr"], "ctc": "18-30 LPA", "roles": "SDE"}
-        ],
-        "finance_consulting": [
-            {"name": "Goldman Sachs", "logo": "GS", "color": "#6B9BC3", "difficulty": "Hard", "rounds": "DSA + Quant + Technical", "categories": ["dsa", "aptitude", "technical"], "ctc": "22-35 LPA", "roles": "Technology Analyst"},
-            {"name": "Morgan Stanley", "logo": "MS", "color": "#002B5C", "difficulty": "Hard", "rounds": "DSA + Quant + Technical", "categories": ["dsa", "aptitude", "technical"], "ctc": "18-30 LPA", "roles": "Technology Analyst"},
-            {"name": "JP Morgan", "logo": "JP", "color": "#003B6F", "difficulty": "Medium-Hard", "rounds": "DSA + Aptitude + Technical", "categories": ["dsa", "aptitude", "technical"], "ctc": "15-22 LPA", "roles": "Software Engineer"},
-            {"name": "Deutsche Bank", "logo": "DB", "color": "#0018A8", "difficulty": "Medium-Hard", "rounds": "DSA + Aptitude + HR", "categories": ["dsa", "aptitude", "hr"], "ctc": "12-18 LPA", "roles": "Technology Graduate"},
-            {"name": "Barclays", "logo": "B", "color": "#00AEEF", "difficulty": "Medium", "rounds": "DSA + Aptitude + HR", "categories": ["dsa", "aptitude", "hr"], "ctc": "12-16 LPA", "roles": "BA3 Developer"},
-            {"name": "DE Shaw", "logo": "DE", "color": "#00263A", "difficulty": "Hard", "rounds": "DSA + Quant + System Design", "categories": ["dsa", "aptitude", "technical"], "ctc": "30-45 LPA", "roles": "MTS"},
-            {"name": "Tower Research", "logo": "TR", "color": "#1C1C1C", "difficulty": "Hard", "rounds": "DSA + Quant + Puzzle", "categories": ["dsa", "aptitude"], "ctc": "35-50 LPA", "roles": "Core Developer"},
-            {"name": "Deloitte", "logo": "D", "color": "#86BC25", "difficulty": "Medium", "rounds": "Aptitude + Case Study + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "6-10 LPA", "roles": "Analyst"},
-            {"name": "EY", "logo": "EY", "color": "#FFE600", "difficulty": "Medium", "rounds": "Aptitude + GD + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "5-8 LPA", "roles": "Consultant"},
-            {"name": "KPMG", "logo": "K", "color": "#00338D", "difficulty": "Medium", "rounds": "Aptitude + Case Study + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "5-8 LPA", "roles": "Analyst"}
-        ],
-        "service_companies": [
-            {"name": "TCS", "logo": "T", "color": "#EE3A43", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.3 - 7.5 LPA", "roles": "Ninja, Digital"},
-            {"name": "Infosys", "logo": "I", "color": "#007CC3", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.6 - 8 LPA", "roles": "System Engineer, SP"},
-            {"name": "Wipro", "logo": "W", "color": "#6A1B9A", "difficulty": "Easy", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.5 - 6.5 LPA", "roles": "Project Engineer"},
-            {"name": "Accenture", "logo": "A", "color": "#A100FF", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4.5 - 6.5 LPA", "roles": "ASE, FSE"},
-            {"name": "Cognizant", "logo": "C", "color": "#1A4F8B", "difficulty": "Easy", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 6.7 LPA", "roles": "GenC, GenC Elevate"},
-            {"name": "HCL Technologies", "logo": "H", "color": "#0072C6", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.5 - 6 LPA", "roles": "Software Engineer"},
-            {"name": "Tech Mahindra", "logo": "TM", "color": "#E31837", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.5 - 5.5 LPA", "roles": "Software Engineer"},
-            {"name": "Capgemini", "logo": "Cg", "color": "#0070AD", "difficulty": "Easy-Medium", "rounds": "Aptitude + Pseudo Code + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 7.5 LPA", "roles": "Analyst, Senior Analyst"},
-            {"name": "IBM", "logo": "IB", "color": "#0043CE", "difficulty": "Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4.2 - 7.5 LPA", "roles": "Associate System Engineer"},
-            {"name": "LTIMindtree", "logo": "LT", "color": "#005BAC", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 6.5 LPA", "roles": "Software Engineer"},
-            {"name": "Mphasis", "logo": "Mp", "color": "#231F20", "difficulty": "Easy", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "3.5 - 5 LPA", "roles": "Software Engineer"},
-            {"name": "Persistent", "logo": "P", "color": "#15489D", "difficulty": "Medium", "rounds": "Aptitude + Coding + HR", "categories": ["aptitude", "dsa", "hr"], "ctc": "4.7 - 8 LPA", "roles": "Software Engineer"},
-            {"name": "Hexaware", "logo": "Hx", "color": "#0072BC", "difficulty": "Easy", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 6 LPA", "roles": "Software Engineer"},
-            {"name": "Virtusa", "logo": "V", "color": "#E1251B", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 6.5 LPA", "roles": "Associate Engineer"},
-            {"name": "Mindtree", "logo": "Mt", "color": "#F3BF1E", "difficulty": "Easy-Medium", "rounds": "Aptitude + Technical + HR", "categories": ["aptitude", "technical", "hr"], "ctc": "4 - 6 LPA", "roles": "Software Engineer"}
-        ]
-    })
+    try:
+        with open(COMPANIES_FILE, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # ───── PROBLEM OF THE DAY ─────
 @app.route('/api/potd')
@@ -792,6 +749,10 @@ def admin_manage_user(user_id):
             target_user.role = data['role']
         if 'points' in data:
             target_user.points = int(data['points'])
+        if 'is_banned' in data:
+            target_user.is_banned = bool(data['is_banned'])
+        if 'is_verified' in data:
+            target_user.is_verified = bool(data['is_verified'])
         db.session.commit()
         return jsonify({"success": True})
 
@@ -839,6 +800,124 @@ def add_question():
         return jsonify({"success": True, "question": new_q})
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/admin/companies', methods=['POST', 'PUT', 'DELETE'])
+def admin_companies():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    try:
+        with open(COMPANIES_FILE, 'r', encoding='utf-8') as f:
+            comps = json.load(f)
+            
+        data = request.json
+        cat = data.get('category')
+        
+        if request.method == 'POST':
+            if cat not in comps:
+                comps[cat] = []
+            comps[cat].append(data.get('company'))
+        elif request.method == 'PUT':
+            idx = data.get('index')
+            if cat in comps and 0 <= idx < len(comps[cat]):
+                comps[cat][idx] = data.get('company')
+        elif request.method == 'DELETE':
+            idx = data.get('index')
+            if cat in comps and 0 <= idx < len(comps[cat]):
+                comps[cat].pop(idx)
+                
+        with open(COMPANIES_FILE, 'w', encoding='utf-8') as f:
+            json.dump(comps, f, indent=4)
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/interviews', methods=['GET', 'DELETE'])
+def admin_interviews():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    if request.method == 'DELETE':
+        exp_id = request.args.get('id')
+        exp = InterviewExperience.query.get(exp_id)
+        if exp:
+            db.session.delete(exp)
+            db.session.commit()
+            return jsonify({"success": True})
+        return jsonify({"error": "Not found"}), 404
+
+    exps = InterviewExperience.query.order_by(InterviewExperience.date_added.desc()).all()
+    return jsonify([{
+        "id": e.id,
+        "username": e.username,
+        "company": e.company,
+        "role": e.role,
+        "content": e.content,
+        "date": e.date_added.strftime('%Y-%m-%d'),
+        "difficulty": e.difficulty
+    } for e in exps])
+
+@app.route('/api/admin/questions/<q_id>', methods=['DELETE', 'PUT'])
+def admin_manage_question(q_id):
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+
+    try:
+        with open(DATA_FILE, 'r', encoding='utf-8') as f:
+            questions = json.load(f)
+            
+        q_idx = next((i for i, q in enumerate(questions) if q['id'] == q_id), -1)
+        if q_idx == -1: return jsonify({"error": "Question not found"}), 404
+        
+        if request.method == 'DELETE':
+            deleted_q = questions.pop(q_idx)
+            ALL_QUESTIONS[:] = [q for q in ALL_QUESTIONS if q['id'] != q_id]
+            if deleted_q.get('category') in QUESTIONS:
+                QUESTIONS[deleted_q['category']] = [q for q in QUESTIONS[deleted_q['category']] if q['id'] != q_id]
+                
+        elif request.method == 'PUT':
+            data = request.json
+            for k, v in data.items():
+                questions[q_idx][k] = v
+            # Update memory
+            for i, q in enumerate(ALL_QUESTIONS):
+                if q['id'] == q_id:
+                    ALL_QUESTIONS[i] = questions[q_idx]
+                    break
+            cat = questions[q_idx].get('category')
+            if cat in QUESTIONS:
+                for i, q in enumerate(QUESTIONS[cat]):
+                    if q['id'] == q_id:
+                        QUESTIONS[cat][i] = questions[q_idx]
+                        break
+
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(questions, f, indent=2)
+            
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/admin/activity')
+def admin_activity():
+    if 'user' not in session: return jsonify({"error": "Unauthorized"}), 401
+    user = User.query.filter_by(username=session['user']).first()
+    if not user or user.role != 'admin': return jsonify({"error": "Forbidden"}), 403
+    
+    activities = Activity.query.order_by(Activity.activity_date.desc()).limit(100).all()
+    result = []
+    for a in activities:
+        u = User.query.get(a.user_id)
+        if u:
+            result.append({
+                "username": u.username,
+                "date": a.activity_date.strftime('%Y-%m-%d'),
+                "count": a.count
+            })
+    return jsonify(result)
 
 # ───── ERROR HANDLERS ─────
 @app.errorhandler(404)
